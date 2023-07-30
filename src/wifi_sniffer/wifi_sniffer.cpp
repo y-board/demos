@@ -43,12 +43,19 @@ void wifi_sniffer_init() {
     ESP_ERROR_CHECK(esp_wifi_start());
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(wifi_sniffer_rx_packet);
-    esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
+    esp_wifi_set_channel(current_channel, WIFI_SECOND_CHAN_NONE);
 
     // Set up state machine transitions
     SniffState->addTransition([]() { return switches_get(1); }, AdjustChannelState);
     AdjustChannelState->addTransition([]() { return buttons_get(1); }, IncreaseChannelState);
     AdjustChannelState->addTransition([]() { return buttons_get(2); }, DecreaseChannelState);
+    AdjustChannelState->addTransition(
+        []() {
+            // Update WiFi channel
+            esp_wifi_set_channel(current_channel, WIFI_SECOND_CHAN_NONE);
+            return !switches_get(1);
+        },
+        SniffState);
     IncreaseChannelState->addTransition([]() { return true; }, AdjustChannelState);
     DecreaseChannelState->addTransition([]() { return true; }, AdjustChannelState);
 }
@@ -104,8 +111,12 @@ void adjust_channel_state() {
     Serial.println("Adjust channel state");
 
     // Light up the LEDs based on the current channel
-    for (int i = 0; i < current_channel; i++) {
-        leds_set_color(i, 255, 255, 255);
+    for (int i = 0; i < LED_COUNT; i++) {
+        if (i < current_channel) {
+            leds_set_color(i, 255, 255, 255);
+        } else {
+            leds_set_color(i, 0, 0, 0);
+        }
     }
 }
 

@@ -3,7 +3,6 @@
 
 #include "Arduino.h"
 #include "ybadge.h"
-#include <stdint.h>
 
 // Required functions
 void wifi_sniffer_init();
