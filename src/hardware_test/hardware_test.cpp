@@ -20,6 +20,7 @@ void hardware_test_loop() {
             leds_set_brightness(get_brightness());
             if (check_switches()) {
                 speaker_play_note(NOTE_C4, 10);
+                delay(10);
             }
         }
     } else if (buttons_get(2)) {
@@ -28,6 +29,7 @@ void hardware_test_loop() {
             leds_set_brightness(get_brightness());
             if (check_switches()) {
                 speaker_play_note(NOTE_D4, 10);
+                delay(10);
             }
         }
     } else if (buttons_get(3)) {
@@ -36,6 +38,7 @@ void hardware_test_loop() {
             leds_set_brightness(get_brightness());
             if (check_switches()) {
                 speaker_play_note(NOTE_E4, 10);
+                delay(10);
             }
         }
     } else {
