@@ -47,17 +47,11 @@ void wifi_sniffer_init() {
 
     // Set up state machine transitions
     SniffState->addTransition([]() { return switches_get(1); }, AdjustChannelState);
-    AdjustChannelState->addTransition([]() { return buttons_get(1); }, IncreaseChannelState);
-    AdjustChannelState->addTransition([]() { return buttons_get(2); }, DecreaseChannelState);
-    AdjustChannelState->addTransition(
-        []() {
-            // Update WiFi channel
-            esp_wifi_set_channel(current_channel, WIFI_SECOND_CHAN_NONE);
-            return !switches_get(1);
-        },
-        SniffState);
-    IncreaseChannelState->addTransition([]() { return true; }, AdjustChannelState);
-    DecreaseChannelState->addTransition([]() { return true; }, AdjustChannelState);
+    AdjustChannelState->addTransition([]() { return buttons_get(3); }, IncreaseChannelState);
+    AdjustChannelState->addTransition([]() { return buttons_get(1); }, DecreaseChannelState);
+    AdjustChannelState->addTransition([]() { return !switches_get(1); }, SniffState);
+    IncreaseChannelState->addTransition([]() { return !buttons_get(3); }, AdjustChannelState);
+    DecreaseChannelState->addTransition([]() { return !buttons_get(1); }, AdjustChannelState);
 }
 
 void wifi_sniffer_loop() { machine.run(); }
@@ -73,13 +67,18 @@ void wifi_sniffer_rx_packet(void *buf, wifi_promiscuous_pkt_type_t type) {
 }
 
 void sniff_state() {
-    Serial.println("Sniff State");
+    // Only run this once
+    if (machine.executeOnce) {
+        // Update WiFi channel
+        Serial.printf("Switching to channel %d\n", current_channel);
+        esp_wifi_set_channel(current_channel, WIFI_SECOND_CHAN_NONE);
+    }
 
     if (sniffed_packet) {
         sniffed_packet = false;
 
         // Update brightness of LEDs based on knob
-        int brightness = map(knob_get(), 0, 4095, 0, 255);
+        int brightness = map(knob_get(), 0, 100, 0, 255);
         leds_set_brightness(brightness);
 
         // Depending on the state of switch 2, either turn on the LEDs to white
@@ -111,8 +110,8 @@ void adjust_channel_state() {
     Serial.println("Adjust channel state");
 
     // Light up the LEDs based on the current channel
-    for (int i = 0; i < LED_COUNT; i++) {
-        if (i < current_channel) {
+    for (int i = 1; i < LED_COUNT + 1; i++) {
+        if (i <= current_channel) {
             leds_set_color(i, 255, 255, 255);
         } else {
             leds_set_color(i, 0, 0, 0);
@@ -121,6 +120,11 @@ void adjust_channel_state() {
 }
 
 void increase_channel_state() {
+    // Only run this state once
+    if (!machine.executeOnce) {
+        return;
+    }
+
     Serial.println("Increase channel state");
 
     current_channel++;
@@ -128,7 +132,13 @@ void increase_channel_state() {
         current_channel = 11;
     }
 }
+
 void decrease_channel_state() {
+    // Only run this state once
+    if (!machine.executeOnce) {
+        return;
+    }
+
     Serial.println("Decrease channel state");
 
     current_channel--;
