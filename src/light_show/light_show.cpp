@@ -30,11 +30,11 @@ void light_show_loop() {
 }
 
 void rainbow_cycle() {
-    byte *c;
+    RGBColor c;
 
     for (int i = 1; i < LED_COUNT + 1; i++) {
         c = color_wheel(((i * 256 / LED_COUNT) + rainbow_cycle_state) & 255);
-        leds_set_color(i, *c, *(c + 1), *(c + 2));
+        leds_set_color(i, c.red, c.green, c.blue);
     }
 
     if (rainbow_cycle_state >= 256) {

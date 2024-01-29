@@ -24,6 +24,12 @@ int current_channel = 1;
 bool sniffed_packet = false;
 int rssi = 0;
 
+const int num_readings = 150;
+int readings[num_readings];
+int read_index = 0;
+int total = 0;
+int average = 0;
+
 StateMachine machine = StateMachine();
 State *SniffState = machine.addState(&sniff_state);
 State *AdjustChannelState = machine.addState(&adjust_channel_state);
@@ -66,6 +72,20 @@ void wifi_sniffer_rx_packet(void *buf, wifi_promiscuous_pkt_type_t type) {
     rssi = header.rssi;
 }
 
+int smooth(int value) {
+    total = total - readings[read_index];
+    readings[read_index] = value;
+    total = total + readings[read_index];
+
+    read_index = read_index + 1;
+
+    if (read_index >= num_readings) {
+        read_index = 0;
+    }
+
+    return total / num_readings;
+}
+
 void sniff_state() {
     // Only run this once
     if (machine.executeOnce) {
@@ -74,31 +94,44 @@ void sniff_state() {
         esp_wifi_set_channel(current_channel, WIFI_SECOND_CHAN_NONE);
     }
 
-    if (sniffed_packet) {
-        sniffed_packet = false;
+    // Update brightness of LEDs based on knob
+    int brightness = map(knob_get(), 0, 100, 0, 255);
+    leds_set_brightness(brightness);
 
-        // Update brightness of LEDs based on knob
-        int brightness = map(knob_get(), 0, 100, 0, 255);
-        leds_set_brightness(brightness);
+    if (switches_get(2)) {
+        // If the first switch is set, blink the LDS for every frame sniffed
 
-        // Depending on the state of switch 2, either turn on the LEDs to white
-        // or map RSSI to a color
-        if (switches_get(2)) {
-            // Turn on LEDs to all white
-            all_leds_set_color(255, 255, 255);
-        } else {
+        if (sniffed_packet) {
+            sniffed_packet = false;
+
             // Map RSSI to 0 and 255
             int value = map(rssi, -90, -65, 0, 255);
 
             // Map value to rainbow color
-            uint8_t *c = color_wheel(value);
+            RGBColor color = color_wheel(value);
 
             // Light up LEDs
-            all_leds_set_color(c[0], c[1], c[2]);
+            all_leds_set_color(color.red, color.green, color.blue);
+        } else {
+            // Turn off LEDs
+            all_leds_set_color(0, 0, 0);
         }
     } else {
-        // Turn off LEDs
-        all_leds_set_color(0, 0, 0);
+        // If the first switch is not set, use the color as an indication of signal strength
+        if (sniffed_packet) {
+            sniffed_packet = false;
+
+            // Come up with a value for the RSSI
+            int smoothed_rssi = smooth(rssi);
+            int value = map(smoothed_rssi, -65, -85, 0, 255);
+            Serial.printf("Smoothed value: %d (%d)\n", smoothed_rssi, value);
+
+            // Map value to rainbow color
+            RGBColor color = blue_to_red(value);
+
+            // Light up LEDs
+            all_leds_set_color(color.red, color.green, color.blue);
+        }
     }
 }
 

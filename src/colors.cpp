@@ -1,24 +1,41 @@
 #include "colors.h"
 
-// used by rainbowCycle and theaterChaseRainbow
-uint8_t *color_wheel(uint8_t wheel_pos) {
-    static uint8_t c[3];
+RGBColor color_wheel(uint8_t wheel_pos) {
+    RGBColor result;
 
     if (wheel_pos < 85) {
-        c[0] = wheel_pos * 3;
-        c[1] = 255 - wheel_pos * 3;
-        c[2] = 0;
+        result.red = wheel_pos * 3;
+        result.green = 255 - wheel_pos * 3;
+        result.blue = 0;
     } else if (wheel_pos < 170) {
         wheel_pos -= 85;
-        c[0] = 255 - wheel_pos * 3;
-        c[1] = 0;
-        c[2] = wheel_pos * 3;
+        result.red = 255 - wheel_pos * 3;
+        result.green = 0;
+        result.blue = wheel_pos * 3;
     } else {
         wheel_pos -= 170;
-        c[0] = 0;
-        c[1] = wheel_pos * 3;
-        c[2] = 255 - wheel_pos * 3;
+        result.red = 0;
+        result.green = wheel_pos * 3;
+        result.blue = 255 - wheel_pos * 3;
     }
 
-    return c;
+    return result;
+}
+
+RGBColor blue_to_red(int blueShade) {
+    RGBColor result;
+
+    // Ensure that the blueShade is within the valid range (0-255)
+    if (blueShade < 0) {
+        blueShade = 0;
+    } else if (blueShade > 255) {
+        blueShade = 255;
+    }
+
+    // Map blue to red (assuming pure blue to pure red transition)
+    result.red = 255 - blueShade;
+    result.green = 0;
+    result.blue = blueShade;
+
+    return result;
 }
