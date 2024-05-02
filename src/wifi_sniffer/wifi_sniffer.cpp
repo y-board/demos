@@ -123,7 +123,7 @@ void sniff_state() {
 
             // Come up with a value for the RSSI
             int smoothed_rssi = smooth(rssi);
-            int value = map(smoothed_rssi, -65, -85, 0, 255);
+            int value = map(smoothed_rssi, -85, -65, 0, 255);
             Serial.printf("Smoothed value: %d (%d)\n", smoothed_rssi, value);
 
             // Map value to rainbow color
