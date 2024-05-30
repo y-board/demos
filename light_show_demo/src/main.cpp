@@ -38,8 +38,8 @@ void loop() {
 void rainbow_cycle() {
     RGBColor c;
 
-    for (int i = 1; i < Yboard.get_led_count() + 1; i++) {
-        c = color_wheel(((i * 256 / Yboard.get_led_count()) + rainbow_cycle_state) & 255);
+    for (int i = 1; i < Yboard.led_count + 1; i++) {
+        c = color_wheel(((i * 256 / Yboard.led_count) + rainbow_cycle_state) & 255);
         Yboard.set_led_color(i, c.red, c.green, c.blue);
     }
 
@@ -53,7 +53,7 @@ void rainbow_cycle() {
 void running_lights(byte red, byte green, byte blue, int WaveDelay) {
     running_lights_state++; // = 0; //Position + Rate;
 
-    for (int i = 1; i < Yboard.get_led_count() + 1; i++) {
+    for (int i = 1; i < Yboard.led_count + 1; i++) {
         Yboard.set_led_color(i, ((sin(i + running_lights_state) * 127 + 128) / 255) * red,
                              ((sin(i + running_lights_state) * 127 + 128) / 255) * green,
                              ((sin(i + running_lights_state) * 127 + 128) / 255) * blue);
@@ -63,13 +63,13 @@ void running_lights(byte red, byte green, byte blue, int WaveDelay) {
 }
 
 void color_wipe(byte red, byte green, byte blue, int SpeedDelay) {
-    if (color_wipe_state < Yboard.get_led_count() + 1) {
+    if (color_wipe_state < Yboard.led_count + 1) {
         Yboard.set_led_color(color_wipe_state, red, green, blue);
     } else {
-        Yboard.set_led_color(color_wipe_state - Yboard.get_led_count(), 255, 255, 255);
+        Yboard.set_led_color(color_wipe_state - Yboard.led_count, 255, 255, 255);
     }
 
-    if (color_wipe_state >= (Yboard.get_led_count() * 2)) {
+    if (color_wipe_state >= (Yboard.led_count * 2)) {
         color_wipe_state = 1;
     } else {
         color_wipe_state++;
