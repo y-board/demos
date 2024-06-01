@@ -29,7 +29,7 @@ void setup() {
 }
 
 void loop() {
-    int led_value = map(filter(Yboard.get_knob()), 0, 100, 20, 1);
+    int led_value = filter(map(Yboard.get_knob(), 0, 100, 20, 1));
 
     for (int i = 1; i <= Yboard.led_count; i++) {
         if (i == led_value) {
@@ -108,7 +108,7 @@ void play_win() {
 
 // Alpha filter for knob value
 int filter(int value) {
-    float alpha = 0.5;
+    float alpha = 0.25;
     static float filtered_value = 0;
 
     filtered_value = alpha * value + (1 - alpha) * filtered_value;
