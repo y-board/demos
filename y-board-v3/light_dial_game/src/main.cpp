@@ -18,6 +18,21 @@ const int code_length = 3;
 int secret_number;
 int success_count = 0;
 
+void secret_changing_task(void *pvParameters) {
+    int previous_success_count = success_count;
+
+    while (1) {
+        if (Yboard.get_switch(1)) {
+            delay(5000);
+            if (Yboard.get_switch(1) && previous_success_count == success_count) {
+                secret_number = generate_random_number();
+            }
+            previous_success_count = success_count;
+        }
+        delay(50);
+    }
+}
+
 void setup() {
     Serial.begin(9600);
 
@@ -27,6 +42,7 @@ void setup() {
     Yboard.set_led_brightness(100);
 
     secret_number = generate_random_number();
+    xTaskCreate(secret_changing_task, "Secret Changing Task", 1000, NULL, 1, NULL);
 }
 
 void loop() {
