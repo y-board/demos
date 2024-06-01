@@ -22,6 +22,7 @@ void setup() {
     Serial.begin(9600);
 
     Yboard.setup();
+    Yboard.set_speaker_volume(25);
     Yboard.set_all_leds_color(0, 0, 0);
     Yboard.set_led_brightness(100);
 
