@@ -14,16 +14,18 @@ int filter(int value);
 Color map_to_color(int value, int min_value, int max_value);
 void delay_with_audio(int ms);
 
-const int code_length = 3;
+const int code_length = 5;
 int secret_number;
 int success_count = 0;
+int level = 0;
+int level_delays[] = {8000, 5000, 3000, 2000, 1000, 500};
 
 void secret_changing_task(void *pvParameters) {
     int previous_success_count = success_count;
 
     while (1) {
         if (Yboard.get_switch(1)) {
-            delay(5000);
+            delay(level_delays[level]);
             if (Yboard.get_switch(1) && previous_success_count == success_count) {
                 secret_number = generate_random_number();
             }
@@ -64,6 +66,7 @@ void loop() {
 
         if (success_count == code_length) {
             play_win();
+            level = min(level + 1, 5);
 
             // Reset the game
             success_count = 0;
