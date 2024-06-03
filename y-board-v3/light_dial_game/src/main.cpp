@@ -18,7 +18,8 @@ const int code_length = 5;
 int secret_number;
 int success_count = 0;
 int level = 0;
-int level_delays[] = {8000, 5000, 3000, 2000, 1000, 500};
+int max_levels = 10;
+int level_delays[] = {8000, 5000, 3000, 2000, 1000, 500, 400, 300, 200, 100};
 
 void secret_changing_task(void *pvParameters) {
     int previous_success_count = success_count;
@@ -66,7 +67,7 @@ void loop() {
 
         if (success_count == code_length) {
             play_win();
-            level = min(level + 1, 5);
+            level = min(level + 1, max_levels);
 
             // Reset the game
             success_count = 0;
