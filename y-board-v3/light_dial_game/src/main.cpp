@@ -80,6 +80,15 @@ void loop() {
         play_bad_guess();
         success_count = 0;
     }
+
+    if (Yboard.accelerometer_available()) {
+        accelerometer_data data = Yboard.get_accelerometer();
+
+        if (abs(data.x) > 1900 || abs(data.y) > 1900 || abs(data.z) > 1900) {
+            play_bad_guess();
+            success_count = 0;
+        }
+    }
 }
 
 int generate_random_number() {
