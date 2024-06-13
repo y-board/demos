@@ -12,9 +12,18 @@ void setup() {
     Yboard.play_notes("O5 T150 AA#BCC#DD#EFF#GG#");
     Serial.println("Done playing scale");
 
-    // Yboard.set_sd_song_volume(10);
+    // Yboard.set_sound_file_volume(10);
     Yboard.play_sound_file("/light_game/sm64_key_get.wav");
     Serial.println("Done playing song");
+
+    // Play a few notes
+    Yboard.play_note(1000, 500);  // 1000 Hz for 500 ms
+    Yboard.play_note(1500, 1000); // 1500 Hz for 1000 ms
+    Yboard.play_note(2000, 1500); // 2000 Hz for 1500 ms
+    while (Yboard.is_audio_playing()) {
+        Yboard.loop_speaker();
+    }
+    Serial.println("Done playing notes");
 
     Serial.println("Queueing up notes to play in the background");
 
