@@ -10,18 +10,22 @@ void setup() {
 
     // Place scale in Octave 5
     Yboard.play_notes("O5 T150 AA#BCC#DD#EFF#GG#");
-
-    // Repeat the scale using the > notation
-    Yboard.play_notes("O4 T150 A>A#>B>C>C#> O5 DD#EFF#GG#");
-
-    // Rest, then play a few of the longest possible notes
-    Yboard.play_notes("R1 T40 A1 B1 C1");
-
-    // Play mary had a little lamb
-    Yboard.play_notes("O4 T240 V2 EDCDEEE2DDD2EGG2EDCDEEEEDDEDC1");
+    Serial.println("Done playing scale");
 
     // Yboard.set_sd_song_volume(10);
-    // Yboard.play_song_from_sd("/light_game/sm64_key_get.wav");
+    Yboard.play_song_from_sd("/light_game/sm64_key_get.wav");
+    Serial.println("Done playing song");
+
+    Serial.println("Queueing up notes to play in the background");
+
+    // Repeat the scale using the > notation
+    Yboard.play_notes_background("O4 T150 A>A#>B>C>C#> O5 DD#EFF#GG#");
+
+    // Rest, then play a few of the longest possible notes
+    Yboard.play_notes_background("R1 T40 A1 B1 C1");
+
+    // Play mary had a little lamb
+    Yboard.play_notes_background("O4 T240 V2 EDCDEEE2DDD2EGG2EDCDEEEEDDEDC1");
 
     start_time = millis();
 }
@@ -36,13 +40,13 @@ void loop() {
     // Uncomment this to stop the audio after 5 seconds to test the stop functionality
     // and then start mary had a little lamb again 3 seconds later
     //
-    // if ((millis() - start_time > 1500) && !stopped) {
+    // if ((millis() - start_time > 5000) && !stopped) {
     //     Yboard.stop_audio();
     //     stopped = true;
     // }
-    // if ((millis() - start_time > 1700) & !played_after_stopping) {
-    //     // Yboard.play_notes("O4 T240 V2 EDCDEEE2DDD2EGG2EDCDEEEEDDEDC1");
-    //     Yboard.play_song_from_sd("/light_game/sm64_key_get.wav");
+    // if ((millis() - start_time > 8000) & !played_after_stopping) {
+    //     Yboard.play_notes("O4 T240 V2 EDCDEEE2DDD2EGG2EDCDEEEEDDEDC1");
+    //     // Yboard.play_song_from_sd("/light_game/sm64_key_get.wav");
 
     //     played_after_stopping = true;
     // }
