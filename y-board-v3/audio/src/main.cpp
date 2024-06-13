@@ -13,7 +13,7 @@ void setup() {
     Serial.println("Done playing scale");
 
     // Yboard.set_sd_song_volume(10);
-    Yboard.play_song_from_sd("/light_game/sm64_key_get.wav");
+    Yboard.play_sound_file("/light_game/sm64_key_get.wav");
     Serial.println("Done playing song");
 
     Serial.println("Queueing up notes to play in the background");
@@ -46,7 +46,7 @@ void loop() {
     // }
     // if ((millis() - start_time > 8000) & !played_after_stopping) {
     //     Yboard.play_notes("O4 T240 V2 EDCDEEE2DDD2EGG2EDCDEEEEDDEDC1");
-    //     // Yboard.play_song_from_sd("/light_game/sm64_key_get.wav");
+    //     // Yboard.play_sound_file("/light_game/sm64_key_get.wav");
 
     //     played_after_stopping = true;
     // }
