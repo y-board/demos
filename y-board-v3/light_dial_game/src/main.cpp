@@ -108,7 +108,7 @@ void play_correct_guess() {
     Serial.println(file_name);
 
     if (!Yboard.play_sound_file_background(file_name)) {
-        Yboard.play_notes_background("T240 CE");
+        Yboard.play_notes_background("V2 T240 CE");
     }
     delay_with_audio(100);
     Yboard.set_all_leds_color(0, 255, 0);
@@ -118,7 +118,7 @@ void play_correct_guess() {
 
 void play_bad_guess() {
     if (!Yboard.play_sound_file_background("/light_game/sm64_thwomp.wav")) {
-        Yboard.play_notes_background("T240 AC");
+        Yboard.play_notes_background("V2 T240 AC");
     }
     delay_with_audio(100);
     Yboard.set_all_leds_color(255, 0, 0);
@@ -128,7 +128,7 @@ void play_bad_guess() {
 
 void play_win() {
     if (!Yboard.play_sound_file_background("/light_game/sm64_key_get.wav")) {
-        Yboard.play_notes_background("T240 CEGAFEDC");
+        Yboard.play_notes_background("V2 T240 CEGAFEDC");
     }
 
     for (int i = 1; i <= Yboard.led_count; i++) {
