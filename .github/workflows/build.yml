@@ -1,0 +1,46 @@
+name: Build Project
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      board: esp32-s3-devkitc-1
+      y_board_v2_lib: https://github.com/y-board/y-board-v2
+      y_board_v3_lib: https://github.com/y-board/y-board-v3
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build Audio Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+        working-directory: ./y-board-v3/audio
+
+      - name: Build Hardware Test Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+        working-directory: ./y-board-v3/hardware_test
+
+      - name: Build Light Dial Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+        working-directory: ./y-board-v3/light_dial_game
+
+      - name: Build Light Show Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+        working-directory: ./y-board-v3/light_show
+
+      - name: Build WiFi Sniffer Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib, ivanseidel/LinkedList, jrullan/StateMachine@^1.0.11" src/*
+        working-directory: ./y-board-v3/wifi_sniffer
