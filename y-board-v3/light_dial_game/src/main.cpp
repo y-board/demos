@@ -107,24 +107,29 @@ void play_correct_guess() {
     snprintf(file_name, 50, "/light_game/sm64_red_coin_%d.wav", success_count % (code_length + 1));
     Serial.println(file_name);
 
-    Yboard.play_sound_file_background(file_name);
+    if (!Yboard.play_sound_file_background(file_name)) {
+        Yboard.play_notes_background("T240 CE");
+    }
+    delay_with_audio(100);
     Yboard.set_all_leds_color(0, 255, 0);
-    // delay_with_audio(800);
     wait_for_audio();
     Yboard.set_all_leds_color(0, 0, 0);
 }
 
 void play_bad_guess() {
-    Yboard.play_sound_file_background("/light_game/sm64_thwomp.wav");
+    if (!Yboard.play_sound_file_background("/light_game/sm64_thwomp.wav")) {
+        Yboard.play_notes_background("T240 AC");
+    }
     delay_with_audio(100);
     Yboard.set_all_leds_color(255, 0, 0);
-    // delay_with_audio(900);
     wait_for_audio();
     Yboard.set_all_leds_color(0, 0, 0);
 }
 
 void play_win() {
-    Yboard.play_sound_file_background("/light_game/sm64_key_get.wav");
+    if (!Yboard.play_sound_file_background("/light_game/sm64_key_get.wav")) {
+        Yboard.play_notes_background("T240 CEGAFEDC");
+    }
 
     for (int i = 1; i <= Yboard.led_count; i++) {
         Yboard.set_led_color(i, 0, 255, 0);
@@ -135,7 +140,6 @@ void play_win() {
     delay_with_audio(250);
     Yboard.set_all_leds_color(0, 255, 0);
 
-    // delay_with_audio(500);
     wait_for_audio();
     Yboard.set_all_leds_color(0, 0, 0);
 }
