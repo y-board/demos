@@ -25,7 +25,7 @@ void loop() {
             Yboard.set_all_leds_color(255, 0, 0);
             Yboard.set_led_brightness(get_brightness());
             if (check_switches()) {
-                Yboard.play_note(NOTE_C4, 10);
+                Yboard.play_notes("C");
                 delay(10);
             }
         }
@@ -34,8 +34,7 @@ void loop() {
             Yboard.set_all_leds_color(255, 255, 0);
             Yboard.set_led_brightness(get_brightness());
             if (check_switches()) {
-                Yboard.play_note(NOTE_D4, 10);
-                delay(10);
+                Yboard.play_notes("D");
             }
         }
     } else if (Yboard.get_button(3)) {
@@ -43,8 +42,7 @@ void loop() {
             Yboard.set_all_leds_color(0, 255, 0);
             Yboard.set_led_brightness(get_brightness());
             if (check_switches()) {
-                Yboard.play_note(NOTE_E4, 10);
-                delay(10);
+                Yboard.play_notes("E");
             }
         }
     } else {
