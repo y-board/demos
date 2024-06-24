@@ -44,3 +44,12 @@ jobs:
       - name: Build WiFi Sniffer Project
         run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib, ivanseidel/LinkedList, jrullan/StateMachine@^1.0.11" src/*
         working-directory: ./y-board-v3/wifi_sniffer
+
+      # Build v2 projects
+      - name: Build Hardware Test Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v2_lib" src/*
+        working-directory: ./y-board-v2/hardware_test
+
+      - name: Build HomeKit Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v2_lib, homespan/HomeSpan@^1.9.0" src/*
+        working-directory: ./y-board-v2/homekit
