@@ -24,16 +24,33 @@ void loop() {
         Yboard.set_all_leds_color(255, 255, 255);
         Yboard.play_notes("O5 T150 AA#B");
         Yboard.set_all_leds_color(0, 0, 0);
-    } else {
-        Yboard.set_led_color(3, 0, 0, 0);
     }
 
     if (Yboard.get_button(2)) {
-        Yboard.set_all_leds_color(255, 255, 255);
-        Yboard.play_sound_file("/hardware_test/sm64_key_get.wav");
-        Yboard.set_all_leds_color(0, 0, 0);
-    } else {
-        Yboard.set_led_color(4, 0, 0, 0);
+        Yboard.set_recording_volume(3);
+        bool started_recording = Yboard.start_recording("/test.wav");
+        while (Yboard.get_button(2)) {
+            if (started_recording) {
+                Yboard.set_all_leds_color(255, 0, 0);
+                delay(100);
+            } else {
+                Yboard.set_all_leds_color(100, 100, 100);
+                delay(100);
+                Yboard.set_all_leds_color(0, 0, 0);
+                delay(100);
+            }
+        }
+
+        if (started_recording) {
+            delay(200); // Don't stop the recording immediately
+            Yboard.stop_recording();
+            delay(100);
+            Yboard.set_all_leds_color(0, 255, 0);
+            Yboard.set_sound_file_volume(10);
+            Yboard.play_sound_file("/test.wav");
+            Yboard.set_all_leds_color(0, 0, 0);
+            Yboard.set_sound_file_volume(5);
+        }
     }
 
     Yboard.set_led_color(5, map(Yboard.get_knob(), 0, 100, 0, 255), 0, 0);
