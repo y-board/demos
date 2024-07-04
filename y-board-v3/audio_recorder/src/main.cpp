@@ -14,6 +14,7 @@ void setup() {
     Serial.begin(9600);
     Yboard.setup();
     Yboard.set_sound_file_volume(10);
+    Yboard.set_recording_volume(3);
     Yboard.set_all_leds_color(255, 255, 255);
 }
 
@@ -21,7 +22,6 @@ void loop() {
     unsigned long currentMillis = millis();
 
     if (Yboard.get_button(1)) {
-        Yboard.set_recording_volume(3);
         bool started_recording = Yboard.start_recording(FILE_NAME);
         while (Yboard.get_button(1)) {
             if (started_recording) {

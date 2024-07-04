@@ -28,7 +28,7 @@ void loop() {
 
     if (Yboard.get_button(2)) {
         Yboard.set_recording_volume(3);
-        bool started_recording = Yboard.start_recording("/test.wav");
+        bool started_recording = Yboard.start_recording("/hardware_test.wav");
         while (Yboard.get_button(2)) {
             if (started_recording) {
                 Yboard.set_all_leds_color(255, 0, 0);
@@ -47,7 +47,7 @@ void loop() {
             delay(100);
             Yboard.set_all_leds_color(0, 255, 0);
             Yboard.set_sound_file_volume(10);
-            Yboard.play_sound_file("/test.wav");
+            Yboard.play_sound_file("/hardware_test.wav");
             Yboard.set_all_leds_color(0, 0, 0);
             Yboard.set_sound_file_volume(5);
         }
