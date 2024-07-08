@@ -28,7 +28,7 @@ void loop() {
                 Yboard.set_all_leds_color(255, 0, 0);
                 delay(100);
             } else {
-                Yboard.set_all_leds_color(100, 100, 100);
+                Yboard.set_all_leds_color(255, 0, 0);
                 delay(100);
                 Yboard.set_all_leds_color(0, 0, 0);
                 delay(100);
@@ -45,8 +45,14 @@ void loop() {
 
     if (Yboard.get_button(2)) {
         Yboard.set_all_leds_color(0, 0, 255);
-        Yboard.play_sound_file(FILE_NAME);
-        Yboard.set_all_leds_color(0, 0, 0);
+        if (!Yboard.play_sound_file(FILE_NAME)) {
+            for (int i = 0; i < 3; i++) {
+                Yboard.set_all_leds_color(255, 0, 0);
+                delay(100);
+                Yboard.set_all_leds_color(0, 0, 0);
+                delay(100);
+            }
+        }
     }
 
     if (currentMillis - previousMillis >= 5) {
