@@ -1,12 +1,14 @@
+import argparse
+import time
+
 import serial
 import psutil
-import time
 
 
 def send_cpu_usage(serial_port):
     cpu_usage_list = []
 
-    with serial.Serial(serial_port, 9600, timeout=1) as ser:
+    with serial.Serial(serial_port, 115200, timeout=1) as ser:
         while True:
             # Read the current CPU usage
             cpu_usage = psutil.cpu_percent(interval=1)
@@ -21,9 +23,17 @@ def send_cpu_usage(serial_port):
             # print(payload, ser.read_all())
 
 
-try:
-    send_cpu_usage("/dev/cu.usbmodem4113301")
-except serial.serialutil.SerialException:
-    print("Serial port not found.")
-except KeyboardInterrupt:
-    pass
+if __name__ == "__main__":
+    # Parse the arguments to get the serial device
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "serial_port", help="The serial port where the device is connected."
+    )
+    args = parser.parse_args()
+
+    try:
+        send_cpu_usage(args.serial_port)
+    except serial.serialutil.SerialException:
+        print("Serial port not found.")
+    except KeyboardInterrupt:
+        pass
