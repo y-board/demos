@@ -10,7 +10,6 @@ const char *ssid = "BYU-WiFi";
 time_t now;
 tm tm;
 int old_sec = 0;
-bool done = false;
 
 // Helper function to convert HSV to RGB
 void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
@@ -58,6 +57,58 @@ void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blu
     }
 }
 
+void update_display() {
+    Yboard.display.clearDisplay();
+    Yboard.display.setCursor(0, 0);
+    Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min);
+    Yboard.display.display();
+}
+
+void update_leds() {
+    int num_leds_on = (tm.tm_sec * Yboard.led_count) / 60 + 1;
+    bool even_minute = tm.tm_min % 2 == 0;
+
+    // Calculate hue based on the current minute to create a rainbow effect
+    int hue = (tm.tm_min * 255) / 59; // Map minutes (0-59) to hue (0-255)
+
+    // Convert HSV to RGB values
+    int red, green, blue;
+    hsvToRgb(hue, 255, 255, red, green, blue);
+
+    // Calculate the brightness of the last LED based on the current second
+    int last_red, last_green, last_blue;
+    int brightness;
+
+    if (even_minute) {
+        brightness = map((tm.tm_sec % (60 / Yboard.led_count)), 0, 2, 50, 255);
+    } else {
+        brightness = map((tm.tm_sec % (60 / Yboard.led_count)), 0, 2, 150, 0);
+    }
+
+    hsvToRgb(hue, 255, brightness, last_red, last_green, last_blue);
+
+    // Loop through each LED that needs to be turned on
+    for (int i = 0; i < num_leds_on; i++) {
+        if (even_minute) {
+            Yboard.set_led_color(i + 1, red, green, blue);
+        } else {
+            Yboard.set_led_color(i + 1, 0, 0, 0);
+        }
+    }
+
+    // Turn on the last LED with a certain amount of brightness
+    Yboard.set_led_color(num_leds_on, last_red, last_green, last_blue);
+
+    // Turn off the rest of the LEDs
+    for (int i = num_leds_on + 1; i < Yboard.led_count; i++) {
+        if (even_minute) {
+            Yboard.set_led_color(i + 1, 0, 0, 0);
+        } else {
+            Yboard.set_led_color(i + 1, red, green, blue);
+        }
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     Yboard.setup();
@@ -91,49 +142,14 @@ void loop() {
     time(&now);
     localtime_r(&now, &tm);
 
-    // Display the time
-    Yboard.display.clearDisplay();
-    Yboard.display.setCursor(0, 0);
-    Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min);
-    Yboard.display.display();
-
-    // Calculate hue based on the current minute to create a rainbow effect
-    int hue = (tm.tm_min * 255) / 59; // Map minutes (0-59) to hue (0-255)
-
-    // Convert HSV to RGB values
-    int red, green, blue;
-    hsvToRgb(hue, 255, 255, red, green, blue);
-
-    int last_red, last_green, last_blue;
-    int brightness = map((tm.tm_sec % (60 / Yboard.led_count)), 0, 2, 50, 255);
-    hsvToRgb(hue, 255, brightness, last_red, last_green, last_blue);
-    Serial.printf("Brightness: %d\n", brightness);
-
-    for (int i = 0; i < Yboard.led_count; i++) {
-        if (i < ((tm.tm_sec * Yboard.led_count) / 60) + 1) {
-            if (tm.tm_min % 2 == 0) {
-                if (i == ((tm.tm_sec * Yboard.led_count) / 60)) {
-                    Yboard.set_led_color(i + 1, last_red, last_green, last_blue);
-                    Serial.printf("Using last color: %d %d %d\n", last_red, last_green, last_blue);
-                } else {
-                    Yboard.set_led_color(i + 1, red, green, blue);
-                }
-            } else {
-                Yboard.set_led_color(i + 1, 0, 0, 0);
-            }
-        } else {
-            if (tm.tm_min % 2 == 0) {
-                Yboard.set_led_color(i + 1, 0, 0, 0);
-            } else {
-                if (i == ((tm.tm_sec * Yboard.led_count) / 60)) {
-                    Yboard.set_led_color(i + 1, last_red, last_green, last_blue);
-                    Serial.printf("Using last color: %d %d %d\n", last_red, last_green, last_blue);
-                } else {
-                    Yboard.set_led_color(i + 1, red, green, blue);
-                }
-            }
-        }
+    if (tm.tm_sec == old_sec) {
+        // Skip this loop iteration if the second hasn't changed
+        delay(50);
+        return;
     }
 
-    delay(100);
+    old_sec = tm.tm_sec;
+
+    update_display();
+    update_leds();
 }
