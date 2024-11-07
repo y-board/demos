@@ -9,6 +9,8 @@ const char *ssid = "BYU-WiFi";
 
 time_t now;
 tm tm;
+int old_sec = 0;
+bool done = false;
 
 // Helper function to convert HSV to RGB
 void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
@@ -92,7 +94,7 @@ void loop() {
     // Display the time
     Yboard.display.clearDisplay();
     Yboard.display.setCursor(0, 0);
-    Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+    Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min);
     Yboard.display.display();
 
     // Calculate hue based on the current minute to create a rainbow effect
@@ -100,13 +102,22 @@ void loop() {
 
     // Convert HSV to RGB values
     int red, green, blue;
-    hsvToRgb(hue, 255, 255, red, green, blue); // Full saturation and brightness for vivid colors
+    hsvToRgb(hue, 255, 255, red, green, blue);
 
-    // Update the LEDs with the calculated rainbow color
+    int last_red, last_green, last_blue;
+    int brightness = map((tm.tm_sec % (60 / Yboard.led_count)), 0, 2, 50, 255);
+    hsvToRgb(hue, 255, brightness, last_red, last_green, last_blue);
+    Serial.printf("Brightness: %d\n", brightness);
+
     for (int i = 0; i < Yboard.led_count; i++) {
         if (i < ((tm.tm_sec * Yboard.led_count) / 60) + 1) {
             if (tm.tm_min % 2 == 0) {
-                Yboard.set_led_color(i + 1, red, green, blue);
+                if (i == ((tm.tm_sec * Yboard.led_count) / 60)) {
+                    Yboard.set_led_color(i + 1, last_red, last_green, last_blue);
+                    Serial.printf("Using last color: %d %d %d\n", last_red, last_green, last_blue);
+                } else {
+                    Yboard.set_led_color(i + 1, red, green, blue);
+                }
             } else {
                 Yboard.set_led_color(i + 1, 0, 0, 0);
             }
@@ -114,10 +125,15 @@ void loop() {
             if (tm.tm_min % 2 == 0) {
                 Yboard.set_led_color(i + 1, 0, 0, 0);
             } else {
-                Yboard.set_led_color(i + 1, red, green, blue);
+                if (i == ((tm.tm_sec * Yboard.led_count) / 60)) {
+                    Yboard.set_led_color(i + 1, last_red, last_green, last_blue);
+                    Serial.printf("Using last color: %d %d %d\n", last_red, last_green, last_blue);
+                } else {
+                    Yboard.set_led_color(i + 1, red, green, blue);
+                }
             }
         }
     }
 
-    delay(1000);
+    delay(100);
 }
