@@ -2,8 +2,6 @@
 #include <time.h>
 #include <yboard.h>
 
-// const char *ssid = "EB-IOT-LAB";
-// const char *password = "enterthen3tl@b";
 const char *ssid = "BYU-WiFi";
 
 #define NTP_SERVER "pool.ntp.org"
@@ -11,6 +9,52 @@ const char *ssid = "BYU-WiFi";
 
 time_t now;
 tm tm;
+
+// Helper function to convert HSV to RGB
+void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
+    float h = hue / 60.0;
+    float s = saturation / 255.0;
+    float v = value / 255.0;
+
+    int i = (int)h;
+    float f = h - i;
+    float p = v * (1 - s);
+    float q = v * (1 - s * f);
+    float t = v * (1 - s * (1 - f));
+
+    switch (i) {
+    case 0:
+        red = v * 255;
+        green = t * 255;
+        blue = p * 255;
+        break;
+    case 1:
+        red = q * 255;
+        green = v * 255;
+        blue = p * 255;
+        break;
+    case 2:
+        red = p * 255;
+        green = v * 255;
+        blue = t * 255;
+        break;
+    case 3:
+        red = p * 255;
+        green = q * 255;
+        blue = v * 255;
+        break;
+    case 4:
+        red = t * 255;
+        green = p * 255;
+        blue = v * 255;
+        break;
+    case 5:
+        red = v * 255;
+        green = p * 255;
+        blue = q * 255;
+        break;
+    }
+}
 
 void setup() {
     Serial.begin(115200);
@@ -22,7 +66,6 @@ void setup() {
     tzset();
 
     // Connect to Wi-Fi
-    // WiFi.begin(ssid, password);
     WiFi.begin(ssid);
     while (WiFi.status() != WL_CONNECTED) {
         Yboard.display.setCursor(0, 0);
@@ -52,11 +95,18 @@ void loop() {
     Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min, tm.tm_sec);
     Yboard.display.display();
 
-    // Update the LEDS with the seconds
+    // Calculate hue based on the current minute to create a rainbow effect
+    int hue = (tm.tm_min * 255) / 59; // Map minutes (0-59) to hue (0-255)
+
+    // Convert HSV to RGB values
+    int red, green, blue;
+    hsvToRgb(hue, 255, 255, red, green, blue); // Full saturation and brightness for vivid colors
+
+    // Update the LEDs with the calculated rainbow color
     for (int i = 0; i < Yboard.led_count; i++) {
         if (i < ((tm.tm_sec * Yboard.led_count) / 60) + 1) {
             if (tm.tm_min % 2 == 0) {
-                Yboard.set_led_color(i + 1, 255, 255, 255);
+                Yboard.set_led_color(i + 1, red, green, blue);
             } else {
                 Yboard.set_led_color(i + 1, 0, 0, 0);
             }
@@ -64,7 +114,7 @@ void loop() {
             if (tm.tm_min % 2 == 0) {
                 Yboard.set_led_color(i + 1, 0, 0, 0);
             } else {
-                Yboard.set_led_color(i + 1, 255, 255, 255);
+                Yboard.set_led_color(i + 1, red, green, blue);
             }
         }
     }
