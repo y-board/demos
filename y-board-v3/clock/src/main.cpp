@@ -7,9 +7,19 @@ const char *ssid = "BYU-WiFi";
 #define NTP_SERVER "pool.ntp.org"
 #define TZ "MST7MDT,M3.2.0,M11.1.0"
 
+// 'bell-solid', 9x10px
+const unsigned char epd_bitmap_bell_solid[] PROGMEM = {0x08, 0x00, 0x1c, 0x00, 0x3e, 0x00, 0x7f,
+                                                       0x00, 0x7f, 0x00, 0x7f, 0x00, 0x7f, 0x00,
+                                                       0xff, 0x80, 0x08, 0x00, 0x0c, 0x00};
+
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 48)
+const int epd_bitmap_allArray_LEN = 1;
+const unsigned char *epd_bitmap_allArray[1] = {epd_bitmap_bell_solid};
+
 time_t now;
 tm tm;
 int old_sec = 0;
+bool old_switch_value;
 
 // Helper function to convert HSV to RGB
 void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
@@ -61,6 +71,12 @@ void update_display() {
     Yboard.display.clearDisplay();
     Yboard.display.setCursor(0, 0);
     Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min);
+
+    if (Yboard.get_switch(1)) {
+        Yboard.display.drawBitmap(Yboard.display.width() - 9, Yboard.display.height() - 10,
+                                  epd_bitmap_allArray[0], 9, 10, 1);
+    }
+
     Yboard.display.display();
 }
 
@@ -109,6 +125,13 @@ void update_leds() {
     }
 }
 
+void play_sound() {
+    if (Yboard.get_switch(1)) {
+        Yboard.set_sound_file_volume(3);
+        Yboard.play_sound_file("/tick-quiet.wav");
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     Yboard.setup();
@@ -136,14 +159,22 @@ void setup() {
     delay(500);
 
     Yboard.display.setTextSize(4);
+    update_display();
+    old_switch_value = Yboard.get_switch(1);
 }
 
 void loop() {
     time(&now);
     localtime_r(&now, &tm);
 
+    // If switch has changed, update the display
+    if (Yboard.get_switch(1) != old_switch_value) {
+        update_display();
+        old_switch_value = Yboard.get_switch(1);
+    }
+
+    // Skip this loop iteration if the second hasn't changed
     if (tm.tm_sec == old_sec) {
-        // Skip this loop iteration if the second hasn't changed
         delay(50);
         return;
     }
@@ -152,4 +183,5 @@ void loop() {
 
     update_display();
     update_leds();
+    play_sound();
 }
