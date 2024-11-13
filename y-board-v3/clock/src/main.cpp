@@ -11,15 +11,20 @@ const char *ssid = "BYU-WiFi";
 const unsigned char epd_bitmap_bell_solid[] PROGMEM = {0x08, 0x00, 0x1c, 0x00, 0x3e, 0x00, 0x7f,
                                                        0x00, 0x7f, 0x00, 0x7f, 0x00, 0x7f, 0x00,
                                                        0xff, 0x80, 0x08, 0x00, 0x0c, 0x00};
+// 'volume-solid', 10x9px
+const unsigned char epd_bitmap_volume_solid[] PROGMEM = {0x00, 0x00, 0x0c, 0x00, 0x1c, 0x80,
+                                                         0x7d, 0x40, 0xfd, 0x40, 0x7d, 0x40,
+                                                         0x1c, 0x80, 0x0c, 0x00, 0x00, 0x00};
 
-// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 48)
-const int epd_bitmap_allArray_LEN = 1;
-const unsigned char *epd_bitmap_allArray[1] = {epd_bitmap_bell_solid};
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 96)
+const int epd_bitmap_allArray_LEN = 2;
+const unsigned char *epd_bitmap_allArray[2] = {epd_bitmap_bell_solid, epd_bitmap_volume_solid};
 
 time_t now;
 tm tm;
 int old_sec = 0;
-bool old_switch_value;
+bool old_switch_1;
+bool old_switch_2;
 
 // Helper function to convert HSV to RGB
 void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
@@ -73,6 +78,10 @@ void update_display() {
     Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min);
 
     if (Yboard.get_switch(1)) {
+        Yboard.display.drawBitmap(Yboard.display.width() - 10, 0, epd_bitmap_allArray[1], 10, 9, 1);
+    }
+
+    if (Yboard.get_switch(2)) {
         Yboard.display.drawBitmap(Yboard.display.width() - 9, Yboard.display.height() - 10,
                                   epd_bitmap_allArray[0], 9, 10, 1);
     }
@@ -127,8 +136,15 @@ void update_leds() {
 
 void play_sound() {
     if (Yboard.get_switch(1)) {
+        // This gets played every second
         Yboard.set_sound_file_volume(3);
         Yboard.play_sound_file("/tick-quiet.wav");
+
+        // This gets played every hour
+        if (tm.tm_min == 0 && tm.tm_sec == 0) {
+            Yboard.set_sound_file_volume(3);
+            Yboard.play_sound_file("/beep.wav");
+        }
     }
 }
 
@@ -160,7 +176,7 @@ void setup() {
 
     Yboard.display.setTextSize(4);
     update_display();
-    old_switch_value = Yboard.get_switch(1);
+    old_switch_1 = Yboard.get_switch(1);
 }
 
 void loop() {
@@ -168,9 +184,13 @@ void loop() {
     localtime_r(&now, &tm);
 
     // If switch has changed, update the display
-    if (Yboard.get_switch(1) != old_switch_value) {
+    if (Yboard.get_switch(1) != old_switch_1) {
         update_display();
-        old_switch_value = Yboard.get_switch(1);
+        old_switch_1 = Yboard.get_switch(1);
+    }
+    if (Yboard.get_switch(2) != old_switch_2) {
+        update_display();
+        old_switch_2 = Yboard.get_switch(2);
     }
 
     // Skip this loop iteration if the second hasn't changed
