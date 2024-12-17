@@ -73,12 +73,24 @@ void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blu
 }
 
 void update_display() {
+    int hour = tm.tm_hour == 12 ? 12 : tm.tm_hour % 12;
+    bool pm = tm.tm_hour >= 12;
+
     Yboard.display.clearDisplay();
+
+    // Draw clock
     Yboard.display.setCursor(0, 0);
-    Yboard.display.printf("%.2d:%.2d", tm.tm_hour, tm.tm_min);
+    Yboard.display.setTextSize(4);
+    Yboard.display.printf("%.2d:%.2d", hour, tm.tm_min);
+
+    // Draw AM/PM indicator
+    Yboard.display.setTextSize(1);
+    Yboard.display.setCursor(Yboard.display.width() - 11, 0);
+    Yboard.display.printf(pm ? "PM" : "AM");
 
     if (Yboard.get_switch(1)) {
-        Yboard.display.drawBitmap(Yboard.display.width() - 10, 0, epd_bitmap_allArray[1], 10, 9, 1);
+        Yboard.display.drawBitmap(Yboard.display.width() - 10, 10, epd_bitmap_allArray[1], 10, 9,
+                                  1);
     }
 
     if (Yboard.get_switch(2)) {
