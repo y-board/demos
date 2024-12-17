@@ -33,6 +33,10 @@ jobs:
         run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
         working-directory: ./y-board-v3/audio_recorder
 
+      - name: Build Clock Project
+        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+        working-directory: ./y-board-v3/clock
+
       - name: Build Hardware Test Project
         run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
         working-directory: ./y-board-v3/hardware_test
