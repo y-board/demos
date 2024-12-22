@@ -26,16 +26,20 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build Audio Project
-        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+        run: pio run
         working-directory: ./y-board-v3/audio
 
-      - name: Build Audio Recorder Project
-        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
-        working-directory: ./y-board-v3/audio_recorder
+      # - name: Build Audio Project
+      #   run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+      #   working-directory: ./y-board-v3/audio
 
-      - name: Build Clock Project
-        run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
-        working-directory: ./y-board-v3/clock
+      # - name: Build Audio Recorder Project
+      #   run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+      #   working-directory: ./y-board-v3/audio_recorder
+
+      # - name: Build Clock Project
+      #   run: pio ci --board $board --project-option="lib_deps=$y_board_v3_lib" src/*
+      #   working-directory: ./y-board-v3/clock
 
       - name: Combine Binaries
         run: python3 build.py
