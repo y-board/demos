@@ -66,7 +66,11 @@ def main():
     output_root.mkdir(exist_ok=True)
 
     for folder in current_dir.iterdir():
-        if folder.is_dir() and not folder.name.startswith("."):
+        if (
+            folder.is_dir()
+            and folder.name is not "build"
+            and not folder.name.startswith(".")
+        ):
             print(f"Processing demo: {folder.name}")
             merge_bin_for_demo(folder, output_root)
 
