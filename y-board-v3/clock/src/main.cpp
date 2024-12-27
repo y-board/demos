@@ -1,8 +1,8 @@
+#include "ImprovWiFiLibrary.h"
+#include <Preferences.h>
 #include <WiFi.h>
 #include <time.h>
 #include <yboard.h>
-
-const char *ssid = "BYU-WiFi";
 
 #define NTP_SERVER "pool.ntp.org"
 #define TZ "MST7MDT,M3.2.0,M11.1.0"
@@ -25,6 +25,35 @@ tm tm;
 int old_sec = 0;
 bool old_switch_1;
 bool old_switch_2;
+
+ImprovWiFi improvSerial(&Serial);
+Preferences preferences;
+
+void update_display();
+
+void onImprovWiFiErrorCb(ImprovTypes::Error err) {
+    Yboard.display.setCursor(0, 0);
+    Yboard.display.println("Error setting up WiFi!");
+    Yboard.display.display();
+}
+
+void onImprovWiFiConnectedCb(const char *ssid, const char *password) {
+    // Save ssid and password here
+    preferences.begin("wifi", false);
+    preferences.putString("ssid", ssid);
+    preferences.putString("password", password);
+    preferences.end();
+
+    Yboard.display.setCursor(0, 0);
+    Yboard.display.println("Connected to WiFi!");
+    Yboard.display.display();
+
+    delay(500);
+
+    Yboard.display.setTextSize(4);
+    update_display();
+    old_switch_1 = Yboard.get_switch(1);
+}
 
 // Helper function to convert HSV to RGB
 void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
@@ -165,33 +194,46 @@ void setup() {
     Yboard.setup();
     Yboard.display.setTextSize(1);
 
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    delay(500);
+
     configTime(0, 0, NTP_SERVER); // 0, 0 because we will use TZ in the next line
     setenv("TZ", TZ, 1);          // Set environment variable with your time zone
     tzset();
 
-    // Connect to Wi-Fi
-    WiFi.begin(ssid);
-    while (WiFi.status() != WL_CONNECTED) {
+    // Set up improv
+    improvSerial.setDeviceInfo(ImprovTypes::ChipFamily::CF_ESP32_S3, "Clock", "1.0.0", "Clock");
+    improvSerial.onImprovError(onImprovWiFiErrorCb);
+    improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
+
+    // See if there are previous credentials saved
+    preferences.begin("wifi", true); // Open in read-only mode
+    String savedSSID = preferences.getString("ssid", "");
+    String savedPassword = preferences.getString("password", "");
+    preferences.end();
+    if (savedSSID.isEmpty()) {
+        Serial.println("No WiFi credentials saved.");
         Yboard.display.setCursor(0, 0);
-        Yboard.display.println("Connecting...");
+        Yboard.display.println("No WiFi credentials.");
+        Yboard.display.println("Connect to serial.");
         Yboard.display.display();
-        Serial.println("Connecting to WiFi...");
-        delay(1000);
+    } else {
+        Serial.println("Found saved WiFi credentials.");
+        Yboard.display.setCursor(0, 0);
+        Yboard.display.printf("Connecting to \n%s...", savedSSID.c_str());
+        Yboard.display.display();
+        improvSerial.tryConnectToWifi(savedSSID.c_str(), savedPassword.c_str());
     }
-
-    Yboard.display.clearDisplay();
-    Yboard.display.setCursor(0, 0);
-    Yboard.display.println("Connected!");
-    Yboard.display.display();
-    Serial.println("Connected to WiFi");
-    delay(500);
-
-    Yboard.display.setTextSize(4);
-    update_display();
-    old_switch_1 = Yboard.get_switch(1);
 }
 
 void loop() {
+    improvSerial.handleSerial();
+
+    if (!improvSerial.isConnected()) {
+        return;
+    }
+
     time(&now);
     localtime_r(&now, &tm);
 
