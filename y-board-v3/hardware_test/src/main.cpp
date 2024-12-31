@@ -1,8 +1,4 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_NeoPixel.h>
-#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
-#include <Wire.h>
 
 #include "yboard.h"
 
@@ -27,7 +23,6 @@
 #define ON 1
 #define OFF 0
 
-Adafruit_SSD1306 display(128, 32); // Create display
 int x,y,z,but1,but2,sw1,sw2,knob,temp,knob_x,knob_y;
 
 void setup() {
@@ -47,81 +42,78 @@ void setup() {
 
   // Display setup
   delay(1000); // Display needs time to initialize
-  display.begin(SSD1306_SWITCHCAPVCC,
-                0x3c); // Initialize display with I2C address: 0x3C
-  display.clearDisplay();
-  display.setTextColor(ON,OFF);
-  display.setRotation(ZERO_DEG); // Can be 0, 90, 180, or 270
-  display.setTextWrap(false);
+  Yboard.display.clearDisplay();
+  Yboard.display.setTextColor(ON,OFF);
+  Yboard.display.setRotation(ZERO_DEG); // Can be 0, 90, 180, or 270
+  Yboard.display.setTextWrap(false);
   uint8_t text_size = 1;
-  display.setTextSize(text_size);
-  display.setCursor(0, 0);
-  display.printf("x:%i",x);
-  display.setCursor(42, 0);
-  display.printf("y:%i", y);
-  display.setCursor(85, 0);
-  display.printf("z:%i", z);
-  display.drawRoundRect(SWITCH_X, SWITCH_Y, SWITCH_WIDTH, SWITCH_HEIGHT, 3, ON);
+  Yboard.display.setTextSize(text_size);
+  Yboard.display.setCursor(0, 0);
+  Yboard.display.printf("x:%i",x);
+  Yboard.display.setCursor(42, 0);
+  Yboard.display.printf("y:%i", y);
+  Yboard.display.setCursor(85, 0);
+  Yboard.display.printf("z:%i", z);
+  Yboard.display.drawRoundRect(SWITCH_X, SWITCH_Y, SWITCH_WIDTH, SWITCH_HEIGHT, 3, ON);
   if (sw1) {
-    display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING, 8, 8, 3, ON);
+    Yboard.display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING, 8, 8, 3, ON);
   } else {
-    display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
+    Yboard.display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
   }
-  display.drawRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING, SWITCH_Y,SWITCH_WIDTH, SWITCH_HEIGHT, 3, ON);
+  Yboard.display.drawRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING, SWITCH_Y,SWITCH_WIDTH, SWITCH_HEIGHT, 3, ON);
   if (sw2) {
-    display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING, 8, 8, 3, ON);
+    Yboard.display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING, 8, 8, 3, ON);
   } else {
-    display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
+    Yboard.display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
   }
-  display.drawRect(BUTTON_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, ON);
+  Yboard.display.drawRect(BUTTON_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, ON);
   if (but1) {
-    display.fillCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2-1, 6, ON);
+    Yboard.display.fillCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2-1, 6, ON);
   }else {
-    display.drawCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
+    Yboard.display.drawCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
   }
-  display.drawRect(BUTTON_X+BUTTON_WIDTH+PADDING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, ON);
+  Yboard.display.drawRect(BUTTON_X+BUTTON_WIDTH+PADDING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, ON);
   if (but2) {
-    display.fillCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
+    Yboard.display.fillCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
   } else {
-    display.drawCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
+    Yboard.display.drawCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
   }
-  display.drawCircle(KNOB_X, KNOB_Y, KNOB_RADIUS, ON);
-  display.display();
-  Yboard.play_notes("O5 F D. C#8 D. C#8 D8 B8- O4 G8 F"); // Play fight song
+  Yboard.display.drawCircle(KNOB_X, KNOB_Y, KNOB_RADIUS, ON);
+  Yboard.display.display();
+  
 }
 
 void loop() {
-  // display.clearDisplay();
 
   // Test switches
   temp = Yboard.get_switch(1);
   if (temp && !sw1) {
     sw1 = 1;
     Yboard.set_led_color(1, 255, 255, 255);
-    display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, OFF);
-    display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING, 8, 8, 3, ON);
-    display.display();
+    Yboard.display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, OFF);
+    Yboard.display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING, 8, 8, 3, ON);
+    Yboard.display.display();
   } else if (!temp && sw1) {
     sw1 = 0;
     Yboard.set_led_color(1, 0, 0, 0);
-    display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING, 8, 8, 3, OFF);
-    display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
-    display.display();
+    Yboard.display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING, 8, 8, 3, OFF);
+    Yboard.display.fillRoundRect(SWITCH_X+PADDING, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
+    Yboard.display.display();
   }
 
   temp = Yboard.get_switch(2);
   if (temp && !sw2) {
     sw2 = 1;
     Yboard.set_led_color(2, 255, 255, 255);
-    display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, OFF);
-    display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING, 8, 8, 3, ON);
-    display.display();
+    Yboard.display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, OFF);
+    Yboard.display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING, 8, 8, 3, ON);
+    Yboard.display.display();
   } else if (!temp && sw2) {
     sw2 = 0;
     Yboard.set_led_color(2, 0, 0, 0);
-    display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING, 8, 8, 3, OFF);
-    display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
-    display.display();
+    Yboard.display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING, 8, 8, 3, OFF);
+    Yboard.display.fillRoundRect(SWITCH_X+SWITCH_WIDTH+PADDING*2, SWITCH_Y+PADDING+SWITCH_HEIGHT/2, 8, 8, 3, ON);
+    Yboard.display.display();
   }
 
   // Test buttons
@@ -129,26 +121,26 @@ void loop() {
   if (temp && !but1) {
     but1 = 1;
     // Yboard.set_led_color(3, 255, 255, 255);
-    display.drawCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, OFF);
-    display.fillCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2-1, 6, ON);
-    display.display();
+    Yboard.display.drawCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, OFF);
+    Yboard.display.fillCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2-1, 6, ON);
+    Yboard.display.display();
     Yboard.set_all_leds_color(255, 255, 255);
-    Yboard.play_notes("O5 T150 AA#B");
+    Yboard.play_notes("O5 F D. C#8 D. C#8 D8 B8- O4 G8 F"); // Play fight song
     Yboard.set_all_leds_color(0, 0, 0);
   } else if (!temp && but1){
     but1 = 0;
     Yboard.set_all_leds_color(0, 0, 0);
-    display.fillCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2-1, 6, OFF);
-    display.drawCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
-    display.display();
+    Yboard.display.fillCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2-1, 6, OFF);
+    Yboard.display.drawCircle(BUTTON_X+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
+    Yboard.display.display();
   }
 
   temp = Yboard.get_button(2);
   if (temp && !but2) {
     but2 = 1;
-    display.drawCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, OFF);
-    display.fillCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
-    display.display();
+    Yboard.display.drawCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, OFF);
+    Yboard.display.fillCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
+    Yboard.display.display();
     Yboard.set_recording_volume(3);
     bool started_recording = Yboard.start_recording("/hardware_test.wav");
     while (Yboard.get_button(2)) {
@@ -176,19 +168,19 @@ void loop() {
   } else if (!temp && but2) {
     but2 = 0;
     Yboard.set_all_leds_color(0, 0, 0);
-    display.fillCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, OFF);
-    display.drawCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
-    display.display();
+    Yboard.display.fillCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, OFF);
+    Yboard.display.drawCircle(BUTTON_X+BUTTON_WIDTH+PADDING+BUTTON_WIDTH/2, BUTTON_Y+BUTTON_HEIGHT/2, 6, ON);
+    Yboard.display.display();
   }
 
   // Test Knob
-  display.fillCircle(knob_x, knob_y, 2, OFF);
+  Yboard.display.fillCircle(knob_x, knob_y, 2, OFF);
   knob = map(Yboard.get_knob(), 0, 100, 0, 255);
   Yboard.set_led_color(5, knob, knob, knob);
-  display.drawCircle(KNOB_X, KNOB_Y, KNOB_RADIUS, ON);
+  Yboard.display.drawCircle(KNOB_X, KNOB_Y, KNOB_RADIUS, ON);
   knob_x = cos(knob * PI / 180 + PI / 4) * KNOB_RADIUS + KNOB_X;
   knob_y = sin(knob * PI / 180 + PI / 4) * KNOB_RADIUS + KNOB_Y;
-  display.fillCircle(knob_x, knob_y, 2, ON);
+  Yboard.display.fillCircle(knob_x, knob_y, 2, ON);
 
   // Test accelerometer
   if (Yboard.accelerometer_available()) {
@@ -207,8 +199,8 @@ void loop() {
         Yboard.set_led_color(6, 0, map(x, 0, 999, 0, 255),
                            map(x, 0, 999, 0, 255));
       }
-      display.setCursor(10, 0);
-      display.printf("%04i", x);
+      Yboard.display.setCursor(10, 0);
+      Yboard.display.printf("%04i", x);
     }
 
     temp = accel_data.y;
@@ -225,8 +217,8 @@ void loop() {
       } else {
         Yboard.set_led_color(7, 0, map(y, 0, 999, 0, 255), 0);
       }
-      display.setCursor(42+10, 0);
-      display.printf("%04i", y);
+      Yboard.display.setCursor(42+10, 0);
+      Yboard.display.printf("%04i", y);
     }
 
     temp = accel_data.z;
@@ -243,9 +235,9 @@ void loop() {
       } else {
         Yboard.set_led_color(8, 0, 0, map(z, 0, 999, 0, 255));
       }
-      display.setCursor(85+10, 0);
-      display.printf("%04i", z);
+      Yboard.display.setCursor(85+10, 0);
+      Yboard.display.printf("%04i", z);
     }
   }
-  display.display(); // Draw on display
+  Yboard.display.display(); // Draw on display
 }
