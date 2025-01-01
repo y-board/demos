@@ -53,7 +53,7 @@ void setup() {
 
 void loop() {
     analog.update();
-    int led_value = map(analog.getValue(), 0, 2888, 20, 1);
+    int led_value = map(analog.getValue(), 0, 1023, 1, 20);
 
     for (int i = 1; i <= Yboard.led_count; i++) {
         if (i == led_value) {
