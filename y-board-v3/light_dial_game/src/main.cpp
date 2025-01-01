@@ -1,5 +1,6 @@
 
 #include "Arduino.h"
+#include "ResponsiveAnalogRead.h"
 #include "yboard.h"
 
 typedef struct {
@@ -21,6 +22,7 @@ int success_count = 0;
 int level = 0;
 int max_levels = 10;
 int level_delays[] = {8000, 5000, 3000, 2000, 1000, 500, 400, 300, 200, 100};
+ResponsiveAnalogRead analog(Yboard.knob_pin, true);
 
 void secret_changing_task(void *pvParameters) {
     int previous_success_count = success_count;
@@ -50,7 +52,8 @@ void setup() {
 }
 
 void loop() {
-    int led_value = filter(map(Yboard.get_knob(), 0, 100, 20, 1));
+    analog.update();
+    int led_value = map(analog.getValue(), 0, 1023, 1, 20);
 
     for (int i = 1; i <= Yboard.led_count; i++) {
         if (i == led_value) {
@@ -142,15 +145,6 @@ void play_win() {
 
     wait_for_audio();
     Yboard.set_all_leds_color(0, 0, 0);
-}
-
-// Alpha filter for knob value
-int filter(int value) {
-    float alpha = 0.25;
-    static float filtered_value = 0;
-
-    filtered_value = alpha * value + (1 - alpha) * filtered_value;
-    return round(filtered_value);
 }
 
 Color map_to_color(int value, int min_value, int max_value) {
