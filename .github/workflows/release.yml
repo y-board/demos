@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  attach_artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ./artifacts
+
+      - name: Upload Artifacts to Release
+        run: |
+          for file in ./artifacts/*; do
+            echo "Uploading $file..."
+            gh release upload ${{ github.event.release.tag_name }} "$file"
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

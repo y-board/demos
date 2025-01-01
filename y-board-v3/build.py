@@ -1,5 +1,7 @@
+import argparse
 from pathlib import Path
 import subprocess
+import sys
 
 # Configuration
 FLASH_SIZE = "8MB"
@@ -54,25 +56,29 @@ def merge_bin_for_demo(demo_path: Path, output_root: Path):
     # Run the command
     try:
         subprocess.run(cmd, check=True)
-        print(f"Generated merged-flash.bin for {demo_path.name} at {output_bin}")
+        print(f"Generated merged binary for {demo_path.name} at {output_bin}")
     except subprocess.CalledProcessError as e:
-        print(f"Failed to generate merged-flash.bin for {demo_path.name}: {e}")
+        print(f"Failed to generate merged binary for {demo_path.name}: {e}")
 
 
 def main():
-    """Main function to process all demo folders."""
+    parser = argparse.ArgumentParser(
+        description="Generate binary for a specified folder."
+    )
+    parser.add_argument("folder", type=Path, help="Path to the demo folder")
+    args = parser.parse_args()
+
+    folder = Path(args.folder)
+    if not folder.is_dir():
+        print(f"Specified path is not a directory: {folder}")
+        sys.exit(1)
+
     current_dir = Path.cwd()
     output_root = current_dir / "build"
     output_root.mkdir(exist_ok=True)
 
-    for folder in current_dir.iterdir():
-        if (
-            folder.is_dir()
-            and folder.name is not "build"
-            and not folder.name.startswith(".")
-        ):
-            print(f"Processing demo: {folder.name}")
-            merge_bin_for_demo(folder, output_root)
+    print(f"Processing demo: {folder.name}")
+    merge_bin_for_demo(folder, output_root)
 
 
 if __name__ == "__main__":
