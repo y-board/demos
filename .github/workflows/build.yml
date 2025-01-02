@@ -14,8 +14,6 @@ jobs:
           - light_dial_game
           - light_show
           - wifi_sniffer
-          # - y-board-v2/hardware_test
-          # - y-board-v2/homekit
     steps:
       - uses: actions/checkout@v4
 
@@ -36,13 +34,3 @@ jobs:
       - name: Build Project
         run: pio run
         working-directory: ./y-board-v3/${{ matrix.project }}
-
-      - name: Make binary
-        run: python3 build.py ${{ matrix.project }}
-        working-directory: ./y-board-v3
-
-      - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.project }}.bin
-          path: ./y-board-v3/build

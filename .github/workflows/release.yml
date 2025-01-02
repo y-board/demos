@@ -5,24 +5,53 @@ on:
     types:
       - published
 
-jobs:
-  attach_artifacts:
-    runs-on: ubuntu-latest
+permissions:
+  contents: write
+  packages: write
 
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - audio
+          - audio_recorder
+          - clock
+          - hardware_test
+          - light_dial_game
+          - light_show
+          - wifi_sniffer
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v3
+      - uses: actions/cache@v4
         with:
-          path: ./artifacts
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build Project
+        run: pio run
+        working-directory: ./y-board-v3/${{ matrix.project }}
+
+      - name: Make binary
+        run: python3 build.py ${{ matrix.project }}
+        working-directory: ./y-board-v3
 
       - name: Upload Artifacts to Release
-        run: |
-          for file in ./artifacts/*; do
-            echo "Uploading $file..."
-            gh release upload ${{ github.event.release.tag_name }} "$file"
-          done
+        uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: "./y-board-v3/build/${{ matrix.project }}.bin"
+          tags: true
