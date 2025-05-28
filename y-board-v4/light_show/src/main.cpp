@@ -32,39 +32,61 @@ void setup() {
     Serial.begin(9600);
     Yboard.setup();
     Yboard.set_knob(120);
+    Yboard.display.setTextSize(2);
+    Yboard.display.setTextWrap(true);
+}
+
+void showPatternName() {
+    Yboard.display.clearDisplay();
+    Yboard.display.setCursor(0, 0);
+    Yboard.display.println(gPatterns[gCurrentPatternNumber].name);
+    Yboard.display.display();
+}
+
+void runCurrentPatternFrame() {
+    gPatterns[gCurrentPatternNumber].func();
+    FastLED.show();
+    FastLED.delay(1000 / FRAMES_PER_SECOND);
+    EVERY_N_MILLISECONDS(20) { gHue++; }
+}
+
+void waitForButtonRelease() {
+    while (Yboard.get_button(2) || Yboard.get_button(1)) {
+        delay(10);
+    }
 }
 
 void loop() {
-    // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber].func();
-
-    // send the 'leds' array out to the actual LED strip
-    FastLED.show();
-    // insert a delay to keep the framerate modest
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
-
-    // do some periodic updates
-    EVERY_N_MILLISECONDS(20) { gHue++; } // slowly cycle the "base color" through the rainbow
-
+    // Display the pattern name for 1 second while running the pattern
+    unsigned long startTime = millis();
+    showPatternName();
+    while (millis() - startTime < 1000) {
+        runCurrentPatternFrame();
+        if (Yboard.get_button(2)) {
+            nextPattern();
+            showPatternName();
+            waitForButtonRelease();
+            return;
+        }
+        if (Yboard.get_button(1)) {
+            previousPattern();
+            showPatternName();
+            waitForButtonRelease();
+            return;
+        }
+    }
+    Yboard.display.clearDisplay();
+    Yboard.display.display();
+    // Continue running the pattern as normal
+    while (!Yboard.get_button(2) && !Yboard.get_button(1)) {
+        runCurrentPatternFrame();
+    }
     if (Yboard.get_button(2)) {
         nextPattern();
-        updateDisplay();
-
-        while (Yboard.get_button(2)) {
-            // wait until the button is released
-            delay(10);
-        }
-    }
-
-    if (Yboard.get_button(1)) {
+    } else if (Yboard.get_button(1)) {
         previousPattern();
-        updateDisplay();
-
-        while (Yboard.get_button(1)) {
-            // wait until the button is released
-            delay(10);
-        }
     }
+    waitForButtonRelease();
 }
 
 void nextPattern() {
@@ -79,15 +101,6 @@ void previousPattern() {
     } else {
         gCurrentPatternNumber--;
     }
-}
-
-void updateDisplay() {
-    Yboard.display.setCursor(0, 0);
-    Yboard.display.println(gPatterns[gCurrentPatternNumber].name);
-    Yboard.display.display();
-    delay(1000);
-    Yboard.display.clearDisplay();
-    Yboard.display.display();
 }
 
 void rainbow() {
