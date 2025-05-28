@@ -96,7 +96,6 @@ void loop() {
             ;
     }
 
-    // Serial.println("Checking accelerometer data...");
     if (Yboard.accelerometer_available()) {
         accelerometer_data data = Yboard.get_accelerometer();
 
@@ -164,14 +163,13 @@ void play_win() {
 
     for (int i = 1; i <= Yboard.led_count; i++) {
         Yboard.set_led_color(i, 0, 255, 0);
-        delay(100);
+        delay(50);
     }
 
     Yboard.set_all_leds_color(0, 0, 0);
     delay(250);
     Yboard.set_all_leds_color(0, 255, 0);
-
-    wait_for_audio();
+    delay(250);
     Yboard.set_all_leds_color(0, 0, 0);
 }
 
