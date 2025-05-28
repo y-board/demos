@@ -61,8 +61,11 @@ void loop() {
         ((knob_value % (Yboard.led_count - 1)) + Yboard.led_count) % (Yboard.led_count - 1) + 1;
 
     for (int i = 1; i <= Yboard.led_count - 1; i++) {
+        int dist = abs(secret_number - i);
+        int wrap_dist = (Yboard.led_count - 1) - dist;
+        int min_dist = min(dist, wrap_dist);
         if (i == led_value) {
-            Color c = map_to_color(abs(secret_number - i), 0, 10);
+            Color c = map_to_color(min_dist, 0, (Yboard.led_count - 1) / 2);
             Yboard.set_led_color(i, c.r, c.g, c.b);
         } else {
             Yboard.set_led_color(i, 0, 0, 0);
