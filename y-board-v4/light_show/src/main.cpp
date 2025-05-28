@@ -1,18 +1,25 @@
 #include <yboard.h>
 
-#include "Arduino.h"
-#include "colors.h"
+#define FRAMES_PER_SECOND 120
+#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
-static int rainbow_cycle_state = 0;
-static int running_lights_state = 0;
-static int color_wipe_state = 0;
-static int rgb_loop_state = 0;
-static int rgb_loop_direction = 1;
+void rainbow();
+void rainbowWithGlitter();
+void addGlitter(fract8 chanceOfGlitter);
+void confetti();
+void sinelon();
+void juggle();
+void bpm();
+void nextPattern();
+void previousPattern();
+void updateDisplay();
 
-void rainbow_cycle();
-void running_lights(byte red, byte green, byte blue, int WaveDelay);
-void color_wipe(byte red, byte green, byte blue, int SpeedDelay);
-void rgb_loop();
+// List of patterns to cycle through.  Each is defined as a separate function below.
+typedef void (*SimplePatternList[])();
+SimplePatternList gPatterns = {rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm};
+
+uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
+uint8_t gHue = 0;                  // rotating "base color" used by many of the patterns
 
 void setup() {
     Serial.begin(9600);
@@ -21,82 +28,108 @@ void setup() {
 }
 
 void loop() {
-    // Update brightness of LEDs based on knob
-    int brightness = Yboard.get_knob();
-    if (brightness < 0) {
-        brightness = 0;
-    } else if (brightness > 255) {
-        brightness = 255;
-    }
-    Yboard.set_led_brightness(brightness);
+    // Call the current pattern function once, updating the 'leds' array
+    gPatterns[gCurrentPatternNumber]();
 
-    if (Yboard.get_switch(1) && Yboard.get_switch(2)) {
-        rainbow_cycle();
-    } else if (Yboard.get_switch(1) && !Yboard.get_switch(2)) {
-        running_lights(255, 255, 255, 20);
-    } else if (!Yboard.get_switch(1) && Yboard.get_switch(2)) {
-        color_wipe(0, 0, 255, 25);
-    } else {
-        rgb_loop();
-    }
-}
+    // send the 'leds' array out to the actual LED strip
+    FastLED.show();
+    // insert a delay to keep the framerate modest
+    FastLED.delay(1000 / FRAMES_PER_SECOND);
 
-void rainbow_cycle() {
-    RGBColor c;
+    // do some periodic updates
+    EVERY_N_MILLISECONDS(20) { gHue++; } // slowly cycle the "base color" through the rainbow
 
-    for (int i = 1; i < Yboard.led_count + 1; i++) {
-        c = color_wheel(((i * 256 / Yboard.led_count) + rainbow_cycle_state) & 255);
-        Yboard.set_led_color(i, c.red, c.green, c.blue);
+    if (Yboard.get_button(2)) {
+        nextPattern();
+        updateDisplay();
+
+        while (Yboard.get_button(2)) {
+            // wait until the button is released
+            delay(10);
+        }
     }
 
-    if (rainbow_cycle_state >= 256) {
-        rainbow_cycle_state = 0;
-    } else {
-        rainbow_cycle_state++;
+    if (Yboard.get_button(1)) {
+        previousPattern();
+        updateDisplay();
+
+        while (Yboard.get_button(1)) {
+            // wait until the button is released
+            delay(10);
+        }
     }
 }
 
-void running_lights(byte red, byte green, byte blue, int WaveDelay) {
-    running_lights_state++; // = 0; //Position + Rate;
-
-    for (int i = 1; i < Yboard.led_count + 1; i++) {
-        Yboard.set_led_color(i, ((sin(i + running_lights_state) * 127 + 128) / 255) * red,
-                             ((sin(i + running_lights_state) * 127 + 128) / 255) * green,
-                             ((sin(i + running_lights_state) * 127 + 128) / 255) * blue);
-    }
-
-    delay(WaveDelay);
+void nextPattern() {
+    // add one to the current pattern number, and wrap around at the end
+    gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
 }
 
-void color_wipe(byte red, byte green, byte blue, int SpeedDelay) {
-    if (color_wipe_state < Yboard.led_count + 1) {
-        Yboard.set_led_color(color_wipe_state, red, green, blue);
+void previousPattern() {
+    // subtract one from the current pattern number, and wrap around at the beginning
+    if (gCurrentPatternNumber == 0) {
+        gCurrentPatternNumber = ARRAY_SIZE(gPatterns) - 1;
     } else {
-        Yboard.set_led_color(color_wipe_state - Yboard.led_count, 255, 255, 255);
+        gCurrentPatternNumber--;
     }
-
-    if (color_wipe_state >= (Yboard.led_count * 2)) {
-        color_wipe_state = 1;
-    } else {
-        color_wipe_state++;
-    }
-
-    delay(SpeedDelay);
 }
 
-void rgb_loop() {
-    Yboard.set_all_leds_color(0, rgb_loop_state, rgb_loop_state);
+void updateDisplay() {
+    Yboard.display.setCursor(0, 0);
+    Yboard.display.println("Changed");
+    Yboard.display.display();
+    delay(1000);
+    Yboard.display.clearDisplay();
+    Yboard.display.display();
+}
 
-    // Switch between increasing and decreasing
-    if (rgb_loop_state >= 255 || rgb_loop_state <= 0) {
-        rgb_loop_direction = !rgb_loop_direction;
+void rainbow() {
+    // FastLED's built-in rainbow generator
+    fill_rainbow(Yboard.leds, Yboard.led_count, gHue, 7);
+}
+
+void rainbowWithGlitter() {
+    // built-in FastLED rainbow, plus some random sparkly glitter
+    rainbow();
+    addGlitter(80);
+}
+
+void addGlitter(fract8 chanceOfGlitter) {
+    if (random8() < chanceOfGlitter) {
+        Yboard.leds[random16(Yboard.led_count)] += CRGB::White;
     }
+}
 
-    if (rgb_loop_direction == 0) {
-        rgb_loop_state++;
-    } else {
-        rgb_loop_state--;
+void confetti() {
+    // random colored speckles that blink in and fade smoothly
+    fadeToBlackBy(Yboard.leds, Yboard.led_count, 10);
+    int pos = random16(Yboard.led_count);
+    Yboard.leds[pos] += CHSV(gHue + random8(64), 200, 255);
+}
+
+void sinelon() {
+    // a colored dot sweeping back and forth, with fading trails
+    fadeToBlackBy(Yboard.leds, Yboard.led_count, 20);
+    int pos = beatsin16(13, 0, Yboard.led_count - 1);
+    Yboard.leds[pos] += CHSV(gHue, 255, 192);
+}
+
+void bpm() {
+    // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+    uint8_t BeatsPerMinute = 62;
+    CRGBPalette16 palette = PartyColors_p;
+    uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
+    for (int i = 0; i < Yboard.led_count; i++) { // 9948
+        Yboard.leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
     }
+}
 
-    delay(3);
+void juggle() {
+    // eight colored dots, weaving in and out of sync with each other
+    fadeToBlackBy(Yboard.leds, Yboard.led_count, 20);
+    uint8_t dothue = 0;
+    for (int i = 0; i < 8; i++) {
+        Yboard.leds[beatsin16(i + 7, 0, Yboard.led_count - 1)] |= CHSV(dothue, 200, 255);
+        dothue += 32;
+    }
 }
