@@ -9,6 +9,7 @@ jobs:
         project:
           - test_io
           - light_dial_game
+          - light_show
     steps:
       - uses: actions/checkout@v4
 
