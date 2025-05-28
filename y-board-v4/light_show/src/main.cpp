@@ -2,6 +2,7 @@
 
 #define FRAMES_PER_SECOND 120
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+#define SHOW_PATTERN_NAME_TIME 1500
 
 void rainbow();
 void rainbowWithGlitter();
@@ -43,11 +44,21 @@ void setup() {
 
 void loop() {
 
-    if (clearDisplay && (millis() - displayTime > 1000)) {
+    // Check if the display should be cleared after showing the pattern name
+    if (clearDisplay && (millis() - displayTime > SHOW_PATTERN_NAME_TIME)) {
         Yboard.display.clearDisplay();
         Yboard.display.display();
         clearDisplay = false;
     }
+
+    // Update brightness of LEDs based on knob
+    int brightness = Yboard.get_knob();
+    if (brightness < 0) {
+        brightness = 0;
+    } else if (brightness > 255) {
+        brightness = 255;
+    }
+    Yboard.set_led_brightness(brightness);
 
     gPatterns[gCurrentPatternNumber].func();
     FastLED.show();
