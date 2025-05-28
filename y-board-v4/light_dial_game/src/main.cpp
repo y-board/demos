@@ -4,6 +4,10 @@ typedef struct {
     unsigned char r, g, b;
 } Color;
 
+static const unsigned char PROGMEM image_checked_bits[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x0c, 0x00, 0x1c, 0x80, 0x38, 0xc0, 0x70,
+    0xe0, 0xe0, 0x71, 0xc0, 0x3b, 0x80, 0x1f, 0x00, 0x0e, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
+
 int generate_random_number();
 void play_correct_guess();
 void play_bad_guess();
@@ -46,6 +50,9 @@ void setup() {
 
     secret_number = generate_random_number();
     xTaskCreate(secret_changing_task, "Secret Changing Task", 2048, NULL, 1, NULL);
+
+    Yboard.display.setTextSize(2);
+    update_display();
 }
 
 void loop() {
@@ -67,6 +74,7 @@ void loop() {
             success_count++;
             play_correct_guess();
             secret_number = generate_random_number();
+            update_display();
 
             if (success_count == code_length) {
                 play_win();
@@ -74,13 +82,12 @@ void loop() {
 
                 // Reset the game
                 success_count = 0;
-                update_display();
             }
         } else {
             play_bad_guess();
             success_count = 0;
-            update_display();
         }
+        update_display();
 
         while (button_pressed())
             ;
@@ -102,8 +109,14 @@ bool button_pressed() { return Yboard.get_button(4) || Yboard.get_knob_button();
 
 void update_display() {
     Yboard.display.clearDisplay();
+
     Yboard.display.setCursor(0, 0);
-    Yboard.display.printf("Level: %d\nSuccess Count: %d\n", level + 1, success_count);
+    Yboard.display.printf("Level %d", level + 1);
+
+    for (int i = 0; i < success_count; i++) {
+        Yboard.display.drawBitmap(i * 20, 22, image_checked_bits, 14, 16, 1);
+    }
+
     Yboard.display.display();
 }
 
