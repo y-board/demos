@@ -13,7 +13,6 @@ void play_bad_guess();
 void play_win();
 int filter(int value);
 Color map_to_color(int value, int min_value, int max_value);
-void delay_with_audio(int ms);
 void wait_for_audio();
 
 const int code_length = 5;
@@ -113,7 +112,7 @@ void play_correct_guess() {
     if (!Yboard.play_sound_file_background(file_name)) {
         Yboard.play_notes_background("V2 T240 CE");
     }
-    delay_with_audio(100);
+    delay(100);
     Yboard.set_all_leds_color(0, 255, 0);
     wait_for_audio();
     Yboard.set_all_leds_color(0, 0, 0);
@@ -123,7 +122,7 @@ void play_bad_guess() {
     if (!Yboard.play_sound_file_background("/light_game/sm64_thwomp.wav")) {
         Yboard.play_notes_background("V2 T240 AC");
     }
-    delay_with_audio(100);
+    delay(100);
     Yboard.set_all_leds_color(255, 0, 0);
     wait_for_audio();
     Yboard.set_all_leds_color(0, 0, 0);
@@ -136,11 +135,11 @@ void play_win() {
 
     for (int i = 1; i <= Yboard.led_count; i++) {
         Yboard.set_led_color(i, 0, 255, 0);
-        delay_with_audio(100);
+        delay(100);
     }
 
     Yboard.set_all_leds_color(0, 0, 0);
-    delay_with_audio(250);
+    delay(250);
     Yboard.set_all_leds_color(0, 255, 0);
 
     wait_for_audio();
@@ -167,15 +166,8 @@ Color map_to_color(int value, int min_value, int max_value) {
     return color;
 }
 
-void delay_with_audio(int ms) {
-    unsigned long start_time = millis();
-    while (millis() - start_time < ms) {
-        Yboard.loop_speaker();
-    }
-}
-
 void wait_for_audio() {
     while (Yboard.is_audio_playing()) {
-        Yboard.loop_speaker();
+        delay(1);
     }
 }

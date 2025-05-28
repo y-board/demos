@@ -35,8 +35,6 @@ bool played_after_stopping = false;
 bool played_after_done = false;
 
 void loop() {
-    Yboard.loop_speaker();
-
     // Uncomment this to stop the audio after 5 seconds to test the stop functionality
     // and then start mary had a little lamb again 3 seconds later
     //
