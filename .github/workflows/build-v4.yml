@@ -27,4 +27,4 @@ jobs:
 
       - name: Build Project
         run: pio run
-        working-directory: ./y-board-v3/${{ matrix.project }}
+        working-directory: ./y-board-v4/${{ matrix.project }}
