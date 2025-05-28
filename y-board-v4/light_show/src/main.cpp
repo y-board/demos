@@ -14,9 +14,16 @@ void nextPattern();
 void previousPattern();
 void updateDisplay();
 
-// List of patterns to cycle through.  Each is defined as a separate function below.
-typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = {rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm};
+// List of patterns to cycle through. Each is defined as a separate function below.
+typedef void (*PatternFunction)();
+struct Pattern {
+    PatternFunction func;
+    const char *name;
+};
+
+Pattern gPatterns[] = {{rainbow, "Rainbow"},   {rainbowWithGlitter, "Rainbow + Glitter"},
+                       {confetti, "Confetti"}, {sinelon, "Sinelon"},
+                       {juggle, "Juggle"},     {bpm, "BPM"}};
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0;                  // rotating "base color" used by many of the patterns
@@ -29,7 +36,7 @@ void setup() {
 
 void loop() {
     // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber]();
+    gPatterns[gCurrentPatternNumber].func();
 
     // send the 'leds' array out to the actual LED strip
     FastLED.show();
@@ -76,7 +83,7 @@ void previousPattern() {
 
 void updateDisplay() {
     Yboard.display.setCursor(0, 0);
-    Yboard.display.println("Changed");
+    Yboard.display.println(gPatterns[gCurrentPatternNumber].name);
     Yboard.display.display();
     delay(1000);
     Yboard.display.clearDisplay();
