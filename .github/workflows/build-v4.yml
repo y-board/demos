@@ -8,6 +8,7 @@ jobs:
       matrix:
         project:
           - test_io
+          - light_dial_game
     steps:
       - uses: actions/checkout@v4
 
