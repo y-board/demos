@@ -12,7 +12,8 @@ void juggle();
 void bpm();
 void nextPattern();
 void previousPattern();
-void updateDisplay();
+void showPatternName();
+void waitForButtonRelease();
 
 // List of patterns to cycle through. Each is defined as a separate function below.
 typedef void (*PatternFunction)();
@@ -27,6 +28,8 @@ Pattern gPatterns[] = {{rainbow, "Rainbow"},   {rainbowWithGlitter, "Rainbow + G
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0;                  // rotating "base color" used by many of the patterns
+bool clearDisplay = false;         // Flag to clear the display on the next update
+unsigned long displayTime = 0;     // Time to clear the display after showing pattern name
 
 void setup() {
     Serial.begin(9600);
@@ -34,6 +37,33 @@ void setup() {
     Yboard.set_knob(120);
     Yboard.display.setTextSize(2);
     Yboard.display.setTextWrap(true);
+
+    showPatternName();
+}
+
+void loop() {
+
+    if (clearDisplay && (millis() - displayTime > 1000)) {
+        Yboard.display.clearDisplay();
+        Yboard.display.display();
+        clearDisplay = false;
+    }
+
+    gPatterns[gCurrentPatternNumber].func();
+    FastLED.show();
+    FastLED.delay(1000 / FRAMES_PER_SECOND);
+    EVERY_N_MILLISECONDS(20) { gHue++; }
+
+    if (Yboard.get_button(2)) {
+        nextPattern();
+        showPatternName();
+        waitForButtonRelease();
+    }
+    if (Yboard.get_button(1)) {
+        previousPattern();
+        showPatternName();
+        waitForButtonRelease();
+    }
 }
 
 void showPatternName() {
@@ -41,52 +71,14 @@ void showPatternName() {
     Yboard.display.setCursor(0, 0);
     Yboard.display.println(gPatterns[gCurrentPatternNumber].name);
     Yboard.display.display();
-}
-
-void runCurrentPatternFrame() {
-    gPatterns[gCurrentPatternNumber].func();
-    FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
-    EVERY_N_MILLISECONDS(20) { gHue++; }
+    clearDisplay = true;
+    displayTime = millis();
 }
 
 void waitForButtonRelease() {
     while (Yboard.get_button(2) || Yboard.get_button(1)) {
         delay(10);
     }
-}
-
-void loop() {
-    // Display the pattern name for 1 second while running the pattern
-    unsigned long startTime = millis();
-    showPatternName();
-    while (millis() - startTime < 1000) {
-        runCurrentPatternFrame();
-        if (Yboard.get_button(2)) {
-            nextPattern();
-            showPatternName();
-            waitForButtonRelease();
-            return;
-        }
-        if (Yboard.get_button(1)) {
-            previousPattern();
-            showPatternName();
-            waitForButtonRelease();
-            return;
-        }
-    }
-    Yboard.display.clearDisplay();
-    Yboard.display.display();
-    // Continue running the pattern as normal
-    while (!Yboard.get_button(2) && !Yboard.get_button(1)) {
-        runCurrentPatternFrame();
-    }
-    if (Yboard.get_button(2)) {
-        nextPattern();
-    } else if (Yboard.get_button(1)) {
-        previousPattern();
-    }
-    waitForButtonRelease();
 }
 
 void nextPattern() {
