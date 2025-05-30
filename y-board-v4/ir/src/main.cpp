@@ -11,7 +11,7 @@ void loop() {
     if (Yboard.get_switch(1)) {
         Yboard.set_all_leds_color(0, 255, 0);
 
-        if (Yboard.ir_recv.decode(&Yboard.ir_results)) {
+        if (Yboard.recv_ir()) {
             decode_results &results = Yboard.ir_results;
             Serial.println(resultToHumanReadableBasic(&results));
             Yboard.display.clearDisplay();
@@ -43,7 +43,7 @@ void loop() {
             delay(1000);
             Yboard.set_all_leds_color(0, 255, 0);
 
-            Yboard.ir_recv.resume(); // Receive the next value
+            Yboard.clear_ir();
         }
     } else {
         Yboard.set_all_leds_color(0, 0, 0);
