@@ -15,6 +15,7 @@ void setup() {
 
     Yboard.setup();
     Yboard.set_led_brightness(brightness);
+    Yboard.display.setTextWrap(true);
 }
 
 void loop() {
@@ -26,7 +27,7 @@ void loop() {
             Serial.println(resultToHumanReadableBasic(&results));
             print_to_display(resultToHumanReadableBasic(&results).c_str());
 
-            // My own custom protocol
+            // My own custom protocol to talk with another YBoard that is in TX mode
             if (results.value == 0x01) {
                 Yboard.set_all_leds_color(255, 255, 255);
             } else if (results.value == 0x02) {
@@ -68,20 +69,22 @@ void loop() {
             delay(1000);
             Yboard.clear_ir();
         }
-    } else {
+    } else if (Yboard.get_switch(2)) {
+        print_to_display("IR Transmitter Mode");
         Yboard.set_all_leds_color(0, 0, 0);
 
-        // Print as binary
-        // Serial.println(Yboard.get_buttons() & 0x1F, BIN);
-        // delay(200);
-
-        if (Yboard.get_buttons() & 0x1F) {
+        if (Yboard.get_buttons()) {
             Yboard.set_all_leds_color(255, 0, 0);
-            Yboard.ir_send.sendNEC(Yboard.get_buttons() & 0x1F, 32);
+            Yboard.ir_send.sendNEC(Yboard.get_buttons(), 32);
 
-            while (Yboard.get_buttons() & 0x1F) {
+            while (Yboard.get_buttons()) {
                 delay(10);
             }
         }
+    } else if (Yboard.get_switch(3)) {
+        print_to_display("IR Learning Mode");
+    } else {
+        print_to_display("Flip switch 1, 2, or 3 to start");
+        Yboard.set_all_leds_color(0, 0, 0);
     }
 }
