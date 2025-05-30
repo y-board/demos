@@ -82,7 +82,25 @@ void loop() {
             }
         }
     } else if (Yboard.get_switch(3)) {
-        print_to_display("IR Learning Mode");
+        print_to_display("IR Learning Mode\n\nPut a remote in front of the IR receiver and press a "
+                         "button on the remote.");
+
+        if (Yboard.recv_ir()) {
+            if (Yboard.ir_results.decode_type != UNKNOWN) {
+                Yboard.play_notes("T240 O5 C32 E32 G32 C>32");
+                Serial.println(resultToHumanReadableBasic(&Yboard.ir_results));
+                print_to_display("IR Learning Mode\n\nPress the button you want to program.");
+
+                uint8_t buttons = 0;
+                while (!(buttons = Yboard.get_buttons())) {
+                    delay(10);
+                }
+                Serial.printf("Button pressed: %d\n", buttons);
+            }
+
+            Yboard.clear_ir();
+        }
+
     } else {
         print_to_display("Flip switch 1, 2, or 3 to start");
         Yboard.set_all_leds_color(0, 0, 0);
