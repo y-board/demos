@@ -2,21 +2,17 @@
 
 void setup() {
     Serial.begin(115200);
-    Yboard.setup();
     delay(1000); // Wait for Serial to initialize
 
-    Yboard.ir_recv.enableIRIn();
-    Serial.printf("IR Rx started\n");
-    Yboard.ir_send.begin();
-    Serial.printf("IR TX started\n");
+    Yboard.setup();
 }
 
 void loop() {
     if (Yboard.get_switch(1)) {
         Yboard.set_all_leds_color(0, 255, 0);
 
-        if (Yboard.ir_recv.decode(&Yboard.results)) {
-            decode_results &results = Yboard.results;
+        if (Yboard.ir_recv.decode(&Yboard.ir_results)) {
+            decode_results &results = Yboard.ir_results;
             Serial.println(resultToHumanReadableBasic(&results));
             Yboard.display.clearDisplay();
             Yboard.display.setCursor(0, 0);
