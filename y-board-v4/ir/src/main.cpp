@@ -79,7 +79,7 @@ void loop() {
 
         if (Yboard.get_buttons()) {
             Yboard.set_all_leds_color(255, 0, 0);
-            Yboard.ir_send.sendNEC(Yboard.get_buttons(), 32);
+            Yboard.send_ir(Yboard.get_buttons(), 32);
 
             while (Yboard.get_buttons()) {
                 delay(10);
@@ -121,9 +121,7 @@ void loop() {
                 if ((buttons & (1 << i)) && learned_codes[i].decode_type != UNUSED) {
                     // Play back the learned code for this button
                     Yboard.set_all_leds_color(0, 255, 0);
-                    bool result =
-                        Yboard.ir_send.send(learned_codes[i].decode_type, learned_codes[i].value,
-                                            learned_codes[i].bits, 0);
+                    bool result = Yboard.send_ir(learned_codes[i]);
 
                     Serial.printf("Replaying code for button %d: ", i + 1);
                     Serial.println(resultToHumanReadableBasic(&learned_codes[i]));
