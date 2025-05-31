@@ -1,5 +1,9 @@
 #include "yboard.h"
 
+#define NUM_BUTTONS 5
+
+decode_results learned_codes[NUM_BUTTONS]; // Stores learned IR codes for each button
+
 int brightness = 120;
 
 void print_to_display(const char *message) {
@@ -85,6 +89,27 @@ void loop() {
         print_to_display("IR Learning Mode\n\nPut a remote in front of the IR receiver and press a "
                          "button on the remote.");
 
+        if (Yboard.get_buttons()) {
+            uint8_t buttons = Yboard.get_buttons();
+            for (int i = 0; i < NUM_BUTTONS; ++i) {
+                if ((buttons & (1 << i)) && learned_codes[i].decode_type != UNUSED) {
+                    // Play back the learned code for this button
+                    Yboard.set_all_leds_color(0, 255, 0);
+                    bool result =
+                        Yboard.ir_send.send(learned_codes[i].decode_type, learned_codes[i].value,
+                                            learned_codes[i].bits, 2);
+                    if (!result) {
+                        Serial.printf("Failed to replay code for button %d\n", i + 1);
+                    } else {
+                        Serial.printf("Replayed code for button %d\n", i + 1);
+                    }
+                    Serial.println(resultToHumanReadableBasic(&learned_codes[i]));
+                }
+            }
+            delay(1000);
+            Yboard.set_all_leds_color(0, 0, 0);
+        }
+
         if (Yboard.recv_ir()) {
             if (Yboard.ir_results.decode_type != UNKNOWN) {
                 Yboard.play_notes("T240 O5 C32 E32 G32 C>32");
@@ -96,8 +121,16 @@ void loop() {
                     delay(10);
                 }
                 Serial.printf("Button pressed: %d\n", buttons);
-            }
 
+                // Save the learned IR code to the corresponding button
+                for (int i = 0; i < NUM_BUTTONS; ++i) {
+                    if (buttons & (1 << i)) {
+                        learned_codes[i] = Yboard.ir_results;
+                        Serial.printf("Learned code for button %d\n", i + 1);
+                    }
+                }
+            }
+            delay(200);
             Yboard.clear_ir();
         }
 
