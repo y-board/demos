@@ -89,27 +89,6 @@ void loop() {
         print_to_display("IR Learning Mode\n\nPut a remote in front of the IR receiver and press a "
                          "button on the remote.");
 
-        if (Yboard.get_buttons()) {
-            uint8_t buttons = Yboard.get_buttons();
-            for (int i = 0; i < NUM_BUTTONS; ++i) {
-                if ((buttons & (1 << i)) && learned_codes[i].decode_type != UNUSED) {
-                    // Play back the learned code for this button
-                    Yboard.set_all_leds_color(0, 255, 0);
-                    bool result =
-                        Yboard.ir_send.send(learned_codes[i].decode_type, learned_codes[i].value,
-                                            learned_codes[i].bits, 2);
-                    if (!result) {
-                        Serial.printf("Failed to replay code for button %d\n", i + 1);
-                    } else {
-                        Serial.printf("Replayed code for button %d\n", i + 1);
-                    }
-                    Serial.println(resultToHumanReadableBasic(&learned_codes[i]));
-                }
-            }
-            delay(1000);
-            Yboard.set_all_leds_color(0, 0, 0);
-        }
-
         if (Yboard.recv_ir()) {
             if (Yboard.ir_results.decode_type != UNKNOWN) {
                 Yboard.play_notes("T240 O5 C32 E32 G32 C>32");
@@ -133,9 +112,33 @@ void loop() {
             delay(200);
             Yboard.clear_ir();
         }
+    } else if (Yboard.get_switch(4)) {
+        print_to_display("IR TX Learned Mode\n\nPress a button to replay the learned code.");
+
+        if (Yboard.get_buttons()) {
+            uint8_t buttons = Yboard.get_buttons();
+            for (int i = 0; i < NUM_BUTTONS; ++i) {
+                if ((buttons & (1 << i)) && learned_codes[i].decode_type != UNUSED) {
+                    // Play back the learned code for this button
+                    Yboard.set_all_leds_color(0, 255, 0);
+                    bool result =
+                        Yboard.ir_send.send(learned_codes[i].decode_type, learned_codes[i].value,
+                                            learned_codes[i].bits, 0);
+
+                    Serial.printf("Replaying code for button %d: ", i + 1);
+                    Serial.println(resultToHumanReadableBasic(&learned_codes[i]));
+
+                    if (!result) {
+                        Serial.printf("Failed to replay code for button %d\n", i + 1);
+                    }
+                }
+            }
+            delay(1000);
+            Yboard.set_all_leds_color(0, 0, 0);
+        }
 
     } else {
-        print_to_display("Flip switch 1, 2, or 3 to start");
+        print_to_display("Flip switch 1, 2, 3, 4 to start");
         Yboard.set_all_leds_color(0, 0, 0);
     }
 }
