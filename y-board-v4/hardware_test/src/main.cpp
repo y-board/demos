@@ -142,12 +142,40 @@ void setup() {
     Yboard.display.setCursor(85, 0);
     Yboard.display.printf("z:%i", z);
 
-    Yboard.set_led_brightness(30);
+    Yboard.set_led_brightness(70);
 }
 
 void loop() {
     update_display();
     Yboard.set_all_leds_color(255, 255, 255);
+
+    if (Yboard.get_button(4)) {
+        Yboard.display.clearDisplay();
+        Yboard.display.setCursor(0, 0);
+        Yboard.display.println("Recording...");
+        bool started_recording = Yboard.start_recording("/hardware_test.wav");
+        while (Yboard.get_button(4)) {
+            if (started_recording) {
+                Yboard.set_all_leds_color(255, 0, 0);
+                delay(100);
+            } else {
+                Yboard.set_all_leds_color(100, 100, 100);
+                delay(100);
+                Yboard.set_all_leds_color(0, 0, 0);
+                delay(100);
+            }
+        }
+
+        if (started_recording) {
+            Yboard.stop_recording();
+            delay(100);
+            Yboard.set_all_leds_color(0, 255, 0);
+            Yboard.set_sound_file_volume(10);
+            Yboard.play_sound_file("/hardware_test.wav");
+            Yboard.set_all_leds_color(0, 0, 0);
+            Yboard.set_sound_file_volume(5);
+        }
+    }
 
     // Refresh rate
     delay(REFRESH_RATE);
