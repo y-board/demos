@@ -3,10 +3,8 @@
 #include "yboard.h"
 
 // Screen Constants
-#define BRIGHTNESS_DAMPER 0.8 // 0 is brightest
-#define REFRESH_RATE 50       // Measured in ms
+#define REFRESH_RATE 50 // Measured in ms
 #define SCREEN_WIDTH 128
-#define ZERO_DEG 0
 #define PADDING 2
 #define SWITCH_X 0 + PADDING * 2
 #define SWITCH_Y 10
@@ -27,16 +25,11 @@
 #define NUM_BUTTONS 5
 
 int x, y, z, knob, temp, knob_x, knob_y;
-int switches[NUM_SWITCHES] = {0};
-int buttons[NUM_BUTTONS] = {0};
-int prev_switches = 0;
-int prev_buttons = 0;
 
 void update_display() {
     // Read current state of all inputs
     int current_switches = Yboard.get_switches();
     int current_buttons = Yboard.get_buttons();
-    int current_knob = map(Yboard.get_knob(), 0, 100, 0, 255);
 
     // Update switch display states
     for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -58,8 +51,10 @@ void update_display() {
         }
     }
 
+    // Update button display states
     for (int i = 0; i < NUM_BUTTONS; i++) {
         int button_state = (current_buttons >> i) & 1;
+
         Yboard.display.drawRect(BUTTON_X + (i * (BUTTON_WIDTH + PADDING)), BUTTON_Y, BUTTON_WIDTH,
                                 BUTTON_HEIGHT, ON);
 
@@ -92,23 +87,24 @@ void update_display() {
     // Update accelerometer data
     if (Yboard.accelerometer_available()) {
         accelerometer_data accel_data = Yboard.get_accelerometer();
-        temp = accel_data.x;
-        if (temp != x) {
-            Yboard.display.setCursor(0, 0);
-            Yboard.display.printf("x:%i", x);
-            x = temp;
+
+        // Update X axis
+        if (accel_data.x != x) {
+            x = accel_data.x;
             Yboard.display.setCursor(0, 0);
             Yboard.display.printf("x:%i", x);
         }
-        temp = accel_data.y;
-        if (temp != y) {
-            y = temp;
+
+        // Update Y axis
+        if (accel_data.y != y) {
+            y = accel_data.y;
             Yboard.display.setCursor(42, 0);
             Yboard.display.printf("y:%i", y);
         }
-        temp = accel_data.z;
-        if (temp != z) {
-            z = temp;
+
+        // Update Z axis
+        if (accel_data.z != z) {
+            z = accel_data.z;
             Yboard.display.setCursor(85, 0);
             Yboard.display.printf("z:%i", z);
         }
@@ -120,14 +116,12 @@ void update_display() {
 void setup() {
     Serial.begin(9600);
     Yboard.setup();
-    x = 0;
-    y = 0;
-    z = 0;
 
-    knob = map(Yboard.get_knob(), 0, 100, 0, 255);
+    // Initialize variables
+    x = y = z = temp = 0;
+    knob = Yboard.get_knob() * 5;
     knob_x = cos(knob * PI / 180 + PI / 4) * KNOB_RADIUS + KNOB_X;
     knob_y = sin(knob * PI / 180 + PI / 4) * KNOB_RADIUS + KNOB_Y;
-    temp = 0;
 
     // Display setup
     delay(1000); // Display needs time to initialize
@@ -153,7 +147,10 @@ void loop() {
         Yboard.display.clearDisplay();
         Yboard.display.setCursor(0, 0);
         Yboard.display.println("Recording...");
+        Yboard.display.display();
+
         bool started_recording = Yboard.start_recording("/hardware_test.wav");
+
         while (Yboard.get_button(4)) {
             if (started_recording) {
                 Yboard.set_all_leds_color(255, 0, 0);
@@ -170,10 +167,8 @@ void loop() {
             Yboard.stop_recording();
             delay(100);
             Yboard.set_all_leds_color(0, 255, 0);
-            Yboard.set_sound_file_volume(10);
             Yboard.play_sound_file("/hardware_test.wav");
             Yboard.set_all_leds_color(0, 0, 0);
-            Yboard.set_sound_file_volume(5);
         }
     }
 
