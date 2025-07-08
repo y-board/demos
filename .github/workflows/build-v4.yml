@@ -11,6 +11,7 @@ jobs:
           - light_dial_game
           - light_show
           - ir
+          - hardware_test
     steps:
       - uses: actions/checkout@v4
 
