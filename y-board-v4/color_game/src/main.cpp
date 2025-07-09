@@ -23,6 +23,9 @@ const int BUTTON_RED = Yboard.button_left;
 const int BUTTON_BLUE = Yboard.button_right;
 const int BUTTON_GREEN = Yboard.button_center;
 
+const int BAR_GRAPH_WIDTH = 90;       // Width of the bar graph in pixels
+const int BAR_GRAPH_LEFT_MARGIN = 25; // Left margin for bar graph
+
 //////////////////////////////// Globals ///////////////////////////////////////
 Color secret_color;   // Secret color to match
 Color user_color;     // User's currently guessed color
@@ -124,9 +127,12 @@ static void state_guessing() {
   Yboard.display.setCursor(0, 0);
   Yboard.display.setTextSize(2);
   Yboard.display.print("R:\nG:\nB:\n");
-  Yboard.display.fillRect(MARGIN, 0, user_color.r * BAR_GRAPH_WIDTH / 255, 15, WHITE);
-  Yboard.display.fillRect(MARGIN, 16, user_color.g * BAR_GRAPH_WIDTH / 255, 15, WHITE);
-  Yboard.display.fillRect(MARGIN, 32, user_color.b * BAR_GRAPH_WIDTH / 255, 15, WHITE);
+  Yboard.display.fillRect(BAR_GRAPH_LEFT_MARGIN, 0,
+                          user_color.r * BAR_GRAPH_WIDTH / 255, 15, WHITE);
+  Yboard.display.fillRect(BAR_GRAPH_LEFT_MARGIN, 16,
+                          user_color.g * BAR_GRAPH_WIDTH / 255, 15, WHITE);
+  Yboard.display.fillRect(BAR_GRAPH_LEFT_MARGIN, 32,
+                          user_color.b * BAR_GRAPH_WIDTH / 255, 15, WHITE);
   Yboard.display.display();
 
   showUserColor();
