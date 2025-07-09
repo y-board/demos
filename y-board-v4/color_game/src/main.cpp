@@ -124,9 +124,9 @@ static void state_guessing() {
   Yboard.display.setCursor(0, 0);
   Yboard.display.setTextSize(2);
   Yboard.display.print("R:\nG:\nB:\n");
-  Yboard.display.fillRect(25, 0, user_color.r * 90 / 255, 15, WHITE);
-  Yboard.display.fillRect(25, 16, user_color.g * 90 / 255, 15, WHITE);
-  Yboard.display.fillRect(25, 32, user_color.b * 90 / 255, 15, WHITE);
+  Yboard.display.fillRect(MARGIN, 0, user_color.r * BAR_GRAPH_WIDTH / 255, 15, WHITE);
+  Yboard.display.fillRect(MARGIN, 16, user_color.g * BAR_GRAPH_WIDTH / 255, 15, WHITE);
+  Yboard.display.fillRect(MARGIN, 32, user_color.b * BAR_GRAPH_WIDTH / 255, 15, WHITE);
   Yboard.display.display();
 
   showUserColor();
