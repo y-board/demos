@@ -13,11 +13,10 @@ typedef enum {
   S_SHOW_INSTRUCTIONS,
   S_GUESSING,
   S_SHOW_SCORE,
-  S_DONE
 } State;
 
 //////////////////////////////// Configuration Constants ///////////////////////
-const int scaler = 3; // How much to change color by per knob turn
+const int KNOB_SCALER = 3; // How much to change color by per knob turn
 
 const int BUTTON_SECRET = Yboard.button_up;
 const int BUTTON_RED = Yboard.button_left;
@@ -95,6 +94,7 @@ static void state_init() {
   user_color = {10, 10, 10};
   Yboard.set_led_brightness(100);
   Yboard.display.clearDisplay();
+  Yboard.display.setTextColor(WHITE);
 }
 
 static void state_instructions() {
@@ -124,16 +124,16 @@ static void state_guessing() {
   Yboard.display.setCursor(0, 0);
   Yboard.display.setTextSize(2);
   Yboard.display.print("R:\nG:\nB:\n");
-  Yboard.display.fillRect(25, 0, 90 * (user_color.r / 255.0), 15, WHITE);
-  Yboard.display.fillRect(25, 16, 90 * (user_color.g / 255.0), 15, WHITE);
-  Yboard.display.fillRect(25, 32, 90 * (user_color.b / 255.0), 15, WHITE);
+  Yboard.display.fillRect(25, 0, user_color.r * 90 / 255, 15, WHITE);
+  Yboard.display.fillRect(25, 16, user_color.g * 90 / 255, 15, WHITE);
+  Yboard.display.fillRect(25, 32, user_color.b * 90 / 255, 15, WHITE);
   Yboard.display.display();
 
   showUserColor();
   if (Yboard.get_button(BUTTON_RED)) {
     if (last_button == BUTTON_RED) {
       int knob = Yboard.get_knob();
-      user_color.r = user_color.r + knob * scaler;
+      user_color.r = user_color.r + knob * KNOB_SCALER;
       user_color.r = constrain(user_color.r, 0, 255);
     }
     last_button = BUTTON_RED;
@@ -142,7 +142,7 @@ static void state_guessing() {
   else if (Yboard.get_button(BUTTON_GREEN)) {
     if (last_button == BUTTON_GREEN) {
       int knob = Yboard.get_knob();
-      user_color.g = user_color.g + knob * scaler;
+      user_color.g = user_color.g + knob * KNOB_SCALER;
       user_color.g = constrain(user_color.g, 0, 255);
     }
     last_button = BUTTON_GREEN;
@@ -151,7 +151,7 @@ static void state_guessing() {
   else if (Yboard.get_button(BUTTON_BLUE)) {
     if (last_button == BUTTON_BLUE) {
       int knob = Yboard.get_knob();
-      user_color.b = user_color.b + knob * scaler;
+      user_color.b = user_color.b + knob * KNOB_SCALER;
       user_color.b = constrain(user_color.b, 0, 255);
     }
     last_button = BUTTON_BLUE;
