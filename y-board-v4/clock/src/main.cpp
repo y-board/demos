@@ -102,7 +102,7 @@ void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blu
 }
 
 void update_display() {
-    int hour = tm.tm_hour == 12 ? 12 : tm.tm_hour % 12;
+    int hour = (tm.tm_hour == 0) ? 12 : ((tm.tm_hour > 12) ? tm.tm_hour - 12 : tm.tm_hour);
     bool pm = tm.tm_hour >= 12;
 
     Yboard.display.clearDisplay();
@@ -131,27 +131,15 @@ void update_display() {
 }
 
 void update_leds() {
-    int num_leds_on = (tm.tm_sec * Yboard.num_leds) / 60 + 1;
+    int num_leds_on = (tm.tm_sec * Yboard.num_leds) / 59;
     bool even_minute = tm.tm_min % 2 == 0;
 
     // Calculate hue based on the current minute to create a rainbow effect
-    int hue = (tm.tm_min * 255) / 59; // Map minutes (0-59) to hue (0-255)
+    int hue = (tm.tm_min * 360) / 59; // Map minutes (0-59) to hue (0-360)
 
     // Convert HSV to RGB values
     int red, green, blue;
     hsvToRgb(hue, 255, 255, red, green, blue);
-
-    // Calculate the brightness of the last LED based on the current second
-    int last_red, last_green, last_blue;
-    int brightness;
-
-    if (even_minute) {
-        brightness = map((tm.tm_sec % (60 / Yboard.num_leds)), 0, 2, 50, 255);
-    } else {
-        brightness = map((tm.tm_sec % (60 / Yboard.num_leds)), 0, 2, 150, 0);
-    }
-
-    hsvToRgb(hue, 255, brightness, last_red, last_green, last_blue);
 
     // Loop through each LED that needs to be turned on
     for (int i = 0; i < num_leds_on; i++) {
@@ -162,11 +150,8 @@ void update_leds() {
         }
     }
 
-    // Turn on the last LED with a certain amount of brightness
-    Yboard.set_led_color(num_leds_on, last_red, last_green, last_blue);
-
     // Turn off the rest of the LEDs
-    for (int i = num_leds_on + 1; i < Yboard.num_leds; i++) {
+    for (int i = num_leds_on; i < Yboard.num_leds; i++) {
         if (even_minute) {
             Yboard.set_led_color(i + 1, 0, 0, 0);
         } else {
