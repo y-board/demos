@@ -55,50 +55,17 @@ void onImprovWiFiConnectedCb(const char *ssid, const char *password) {
     old_switch_1 = Yboard.get_switch(1);
 }
 
-// Helper function to convert HSV to RGB
-void hsvToRgb(int hue, int saturation, int value, int &red, int &green, int &blue) {
-    float h = hue / 60.0;
-    float s = saturation / 255.0;
-    float v = value / 255.0;
+// Function to interpolate between blue and red based on minutes
+CRGB get_color_from_minutes(uint8_t minutes) {
+    // Calculate interpolation factor (0.0 to 1.0)
+    float t = minutes / 59.0;
 
-    int i = (int)h;
-    float f = h - i;
-    float p = v * (1 - s);
-    float q = v * (1 - s * f);
-    float t = v * (1 - s * (1 - f));
+    // Interpolate red and blue channels
+    uint8_t red = 255 * t;
+    uint8_t green = 0;
+    uint8_t blue = 255 * (1.0 - t);
 
-    switch (i) {
-    case 0:
-        red = v * 255;
-        green = t * 255;
-        blue = p * 255;
-        break;
-    case 1:
-        red = q * 255;
-        green = v * 255;
-        blue = p * 255;
-        break;
-    case 2:
-        red = p * 255;
-        green = v * 255;
-        blue = t * 255;
-        break;
-    case 3:
-        red = p * 255;
-        green = q * 255;
-        blue = v * 255;
-        break;
-    case 4:
-        red = t * 255;
-        green = p * 255;
-        blue = v * 255;
-        break;
-    case 5:
-        red = v * 255;
-        green = p * 255;
-        blue = q * 255;
-        break;
-    }
+    return CRGB(red, green, blue);
 }
 
 void update_display() {
@@ -134,17 +101,12 @@ void update_leds() {
     int num_leds_on = (tm.tm_sec * Yboard.num_leds) / 59;
     bool even_minute = tm.tm_min % 2 == 0;
 
-    // Calculate hue based on the current minute to create a rainbow effect
-    int hue = (tm.tm_min * 360) / 59; // Map minutes (0-59) to hue (0-360)
-
-    // Convert HSV to RGB values
-    int red, green, blue;
-    hsvToRgb(hue, 255, 255, red, green, blue);
+    CRGB color = get_color_from_minutes(tm.tm_min);
 
     // Loop through each LED that needs to be turned on
     for (int i = 0; i < num_leds_on; i++) {
         if (even_minute) {
-            Yboard.set_led_color(i + 1, red, green, blue);
+            Yboard.set_led_color(i + 1, color.r, color.g, color.b);
         } else {
             Yboard.set_led_color(i + 1, 0, 0, 0);
         }
@@ -155,7 +117,7 @@ void update_leds() {
         if (even_minute) {
             Yboard.set_led_color(i + 1, 0, 0, 0);
         } else {
-            Yboard.set_led_color(i + 1, red, green, blue);
+            Yboard.set_led_color(i + 1, color.r, color.g, color.b);
         }
     }
 }
