@@ -57,15 +57,14 @@ void setup() {
 
 void loop() {
     int knob_value = -1 * Yboard.get_knob();
-    int led_value =
-        ((knob_value % (Yboard.led_count - 1)) + Yboard.led_count) % (Yboard.led_count - 1) + 1;
+    int led_value = (knob_value % Yboard.num_leds + Yboard.num_leds) % Yboard.num_leds + 1;
 
-    for (int i = 1; i <= Yboard.led_count - 1; i++) {
+    for (int i = 1; i <= Yboard.num_leds; i++) {
         int dist = abs(secret_number - i);
-        int wrap_dist = (Yboard.led_count - 1) - dist;
+        int wrap_dist = (Yboard.num_leds - 1) - dist;
         int min_dist = min(dist, wrap_dist);
         if (i == led_value) {
-            Color c = map_to_color(min_dist, 0, (Yboard.led_count - 1) / 2);
+            Color c = map_to_color(min_dist, 0, (Yboard.num_leds - 1) / 2);
             Yboard.set_led_color(i, c.r, c.g, c.b);
         } else {
             Yboard.set_led_color(i, 0, 0, 0);
@@ -126,7 +125,7 @@ int generate_random_number() {
     int new_rand;
 
     do {
-        new_rand = random(1, Yboard.led_count);
+        new_rand = random(1, Yboard.num_leds);
     } while (new_rand == secret_number);
 
     return new_rand;
@@ -161,7 +160,7 @@ void play_win() {
         Yboard.play_notes_background("V2 T240 CEGAFEDC");
     }
 
-    for (int i = 1; i <= Yboard.led_count; i++) {
+    for (int i = 1; i <= Yboard.num_leds; i++) {
         Yboard.set_led_color(i, 0, 255, 0);
         delay(50);
     }

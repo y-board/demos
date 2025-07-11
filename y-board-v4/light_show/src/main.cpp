@@ -135,7 +135,7 @@ void previousPattern() {
 
 void rainbow() {
     // FastLED's built-in rainbow generator
-    fill_rainbow(Yboard.leds, Yboard.led_count, gHue, 7);
+    fill_rainbow(Yboard.leds, Yboard.num_leds, gHue, 7);
 }
 
 void rainbowWithGlitter() {
@@ -146,21 +146,21 @@ void rainbowWithGlitter() {
 
 void addGlitter(fract8 chanceOfGlitter) {
     if (random8() < chanceOfGlitter) {
-        Yboard.leds[random16(Yboard.led_count)] += CRGB::White;
+        Yboard.leds[random16(Yboard.num_leds)] += CRGB::White;
     }
 }
 
 void confetti() {
     // random colored speckles that blink in and fade smoothly
-    fadeToBlackBy(Yboard.leds, Yboard.led_count, 10);
-    int pos = random16(Yboard.led_count);
+    fadeToBlackBy(Yboard.leds, Yboard.num_leds, 10);
+    int pos = random16(Yboard.num_leds);
     Yboard.leds[pos] += CHSV(gHue + random8(64), 200, 255);
 }
 
 void sinelon() {
     // a colored dot sweeping back and forth, with fading trails
-    fadeToBlackBy(Yboard.leds, Yboard.led_count, 20);
-    int pos = beatsin16(13, 0, Yboard.led_count - 1);
+    fadeToBlackBy(Yboard.leds, Yboard.num_leds, 20);
+    int pos = beatsin16(13, 0, Yboard.num_leds - 1);
     Yboard.leds[pos] += CHSV(gHue, 255, 192);
 }
 
@@ -169,17 +169,17 @@ void bpm() {
     uint8_t BeatsPerMinute = 62;
     CRGBPalette16 palette = PartyColors_p;
     uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
-    for (int i = 0; i < Yboard.led_count; i++) { // 9948
+    for (int i = 0; i < Yboard.num_leds; i++) { // 9948
         Yboard.leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
     }
 }
 
 void juggle() {
     // eight colored dots, weaving in and out of sync with each other
-    fadeToBlackBy(Yboard.leds, Yboard.led_count, 20);
+    fadeToBlackBy(Yboard.leds, Yboard.num_leds, 20);
     uint8_t dothue = 0;
     for (int i = 0; i < 8; i++) {
-        Yboard.leds[beatsin16(i + 7, 0, Yboard.led_count - 1)] |= CHSV(dothue, 200, 255);
+        Yboard.leds[beatsin16(i + 7, 0, Yboard.num_leds - 1)] |= CHSV(dothue, 200, 255);
         dothue += 32;
     }
 }
@@ -203,7 +203,7 @@ void pacifica() {
     sCIStart4 -= (deltams2 * beatsin88(257, 4, 6));
 
     // Clear out the LED array to a dim background blue-green
-    fill_solid(Yboard.leds, Yboard.led_count, CRGB(2, 6, 10));
+    fill_solid(Yboard.leds, Yboard.num_leds, CRGB(2, 6, 10));
 
     // Render each of four layers, with different scales and speeds, that vary over time
     pacifica_one_layer(pacifica_palette_1, sCIStart1, beatsin16(3, 11 * 256, 14 * 256),
@@ -227,7 +227,7 @@ void pacifica_one_layer(CRGBPalette16 &p, uint16_t cistart, uint16_t wavescale, 
     uint16_t ci = cistart;
     uint16_t waveangle = ioff;
     uint16_t wavescale_half = (wavescale / 2) + 20;
-    for (uint16_t i = 0; i < Yboard.led_count; i++) {
+    for (uint16_t i = 0; i < Yboard.num_leds; i++) {
         waveangle += 250;
         uint16_t s16 = sin16(waveangle) + 32768;
         uint16_t cs = scale16(s16, wavescale_half) + wavescale_half;
@@ -244,7 +244,7 @@ void pacifica_add_whitecaps() {
     uint8_t basethreshold = beatsin8(9, 55, 65);
     uint8_t wave = beat8(7);
 
-    for (uint16_t i = 0; i < Yboard.led_count; i++) {
+    for (uint16_t i = 0; i < Yboard.num_leds; i++) {
         uint8_t threshold = scale8(sin8(wave), 20) + basethreshold;
         wave += 7;
         uint8_t l = Yboard.leds[i].getAverageLight();
@@ -258,7 +258,7 @@ void pacifica_add_whitecaps() {
 
 // Deepen the blues and greens
 void pacifica_deepen_colors() {
-    for (uint16_t i = 0; i < Yboard.led_count; i++) {
+    for (uint16_t i = 0; i < Yboard.num_leds; i++) {
         Yboard.leds[i].blue = scale8(Yboard.leds[i].blue, 145);
         Yboard.leds[i].green = scale8(Yboard.leds[i].green, 200);
         Yboard.leds[i] |= CRGB(2, 5, 7);
@@ -267,15 +267,15 @@ void pacifica_deepen_colors() {
 
 void fire() {
     // Array of temperature readings at each simulation cell
-    static uint8_t heat[Yboard.led_count];
+    static uint8_t heat[Yboard.num_leds];
 
     // Step 1.  Cool down every cell a little
-    for (int i = 0; i < Yboard.led_count; i++) {
-        heat[i] = qsub8(heat[i], random8(0, ((COOLING * 10) / Yboard.led_count) + 2));
+    for (int i = 0; i < Yboard.num_leds; i++) {
+        heat[i] = qsub8(heat[i], random8(0, ((COOLING * 10) / Yboard.num_leds) + 2));
     }
 
     // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-    for (int k = Yboard.led_count - 1; k >= 2; k--) {
+    for (int k = Yboard.num_leds - 1; k >= 2; k--) {
         heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
     }
 
@@ -286,7 +286,7 @@ void fire() {
     }
 
     // Step 4.  Map from heat cells to LED colors
-    for (int j = 0; j < Yboard.led_count; j++) {
+    for (int j = 0; j < Yboard.num_leds; j++) {
         CRGB color = HeatColor(heat[j]);
         Yboard.leds[j] = color;
     }
