@@ -13,6 +13,7 @@ jobs:
           - ir
           - hardware_test
           - color_game
+          - clock
     steps:
       - uses: actions/checkout@v4
 
