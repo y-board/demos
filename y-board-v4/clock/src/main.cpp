@@ -172,6 +172,8 @@ void setup() {
         Yboard.display.display();
         improvSerial.tryConnectToWifi(savedSSID.c_str(), savedPassword.c_str());
     }
+
+    Yboard.set_knob(100);
 }
 
 void loop() {
@@ -193,6 +195,16 @@ void loop() {
         update_display();
         old_switch_2 = Yboard.get_switch(2);
     }
+
+    int brightness = Yboard.get_knob();
+    if (brightness < 0) {
+        brightness = 0;
+        Yboard.set_knob(0);
+    } else if (brightness > 255) {
+        brightness = 255;
+        Yboard.set_knob(255);
+    }
+    Yboard.set_led_brightness(brightness);
 
     // Skip this loop iteration if the second hasn't changed
     if (tm.tm_sec == old_sec) {
