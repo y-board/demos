@@ -29,13 +29,11 @@ void secret_changing_task(void *pvParameters) {
     int previous_success_count = success_count;
 
     while (1) {
-        if (Yboard.get_switch(1)) {
-            delay(level_delays[level]);
-            if (Yboard.get_switch(1) && previous_success_count == success_count) {
-                secret_number = generate_random_number();
-            }
-            previous_success_count = success_count;
+        delay(level_delays[level]);
+        if (previous_success_count == success_count) {
+            secret_number = generate_random_number();
         }
+        previous_success_count = success_count;
         delay(50);
     }
 }
@@ -47,6 +45,25 @@ void setup() {
     Yboard.set_sound_file_volume(2);
     Yboard.set_all_leds_color(0, 0, 0);
     Yboard.set_led_brightness(100);
+
+    Yboard.display.setTextWrap(true);
+    Yboard.display.println("Find the red LED by\n"
+                           "turning the knob.\n"
+                           "When you find it \n"
+                           "press the knob. It\n"
+                           "moves faster each \n"
+                           "level.\n"
+                           "Press the knob to \n"
+                           "start.");
+    Yboard.display.display();
+
+    while (!button_pressed()) {
+        delay(50);
+    }
+
+    while (button_pressed()) {
+        delay(50);
+    }
 
     secret_number = generate_random_number();
     xTaskCreate(secret_changing_task, "Secret Changing Task", 2048, NULL, 1, NULL);
@@ -106,7 +123,9 @@ void loop() {
     }
 }
 
-bool button_pressed() { return Yboard.get_button(4) || Yboard.get_knob_button(); }
+bool button_pressed() {
+    return Yboard.get_button(Yboard.button_center) || Yboard.get_knob_button();
+}
 
 void update_display() {
     Yboard.display.clearDisplay();
