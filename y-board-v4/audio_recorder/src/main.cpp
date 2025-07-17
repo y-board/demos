@@ -21,6 +21,12 @@ void setup() {
     Yboard.set_sound_file_volume(10);
     Yboard.set_recording_volume(8);
     Yboard.set_all_leds_color(255, 255, 255);
+
+    Yboard.display.println("Press the left button\n"
+                           "to record and press\n"
+                           "the right button to\n"
+                           "play the recording.");
+    Yboard.display.display();
 }
 
 void loop() {
