@@ -90,6 +90,12 @@ def main():
     parser.add_argument(
         "folders", type=Path, nargs="+", help="Path(s) to the demo folder(s)"
     )
+    parser.add_argument(
+        "--only-merge",
+        action="store_true",
+        help="Only merge the binary without compiling the demo",
+    )
+
     args = parser.parse_args()
 
     for folder in args.folders:
@@ -104,7 +110,8 @@ def main():
         output_root.mkdir(exist_ok=True)
 
         print(f"Processing demo: {folder.name}")
-        compile_demo(folder)
+        if not args.only_merge:
+            compile_demo(folder)
         merge_bin_for_demo(folder, output_root)
 
 
