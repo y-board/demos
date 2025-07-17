@@ -7,13 +7,13 @@ jobs:
     strategy:
       matrix:
         project:
-          - test_io
-          - light_dial_game
-          - light_show
-          - ir
-          - hardware_test
-          - color_game
-          - clock
+          # - test_io
+          # - light_dial_game
+          # - light_show
+          # - ir
+          # - hardware_test
+          # - color_game
+          # - clock
           - audio_recorder
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +48,9 @@ jobs:
       - name: Collect Artifacts
         run: |
           mkdir -p out
-          for project in test_io light_dial_game light_show ir color_game clock audio_recorder; do
+          for project in audio_recorder; do
+            ls -ahl .
+            ls -ahl ./y-board-v4/$project
             python3 ./y-board-v4/build.py --only-merge ./y-board-v4/$project
             cp ./y-board-v4/build/$project.bin out/ || true
           done
