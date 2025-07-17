@@ -2,19 +2,16 @@
 #include "Arduino.h"
 #include "yboard.h"
 
-static const std::string FILE_NAME = "/audio_recorder_demo.wav";
-static const float smoothness_pts = 500;    // larger=slower change in brightness
-static const float smoothness_gamma = 0.14; // affects the width of peak (more or less darkness)
-static const float smoothness_beta = 0.5;   // shifts the gaussian to be symmetric
+constexpr int num_bars = 16;
+constexpr int bar_width = 6;
+constexpr int max_bar_height = Yboard.display_height - 5;
+constexpr float smoothness_pts = 500;    // larger=slower change in brightness
+constexpr float smoothness_gamma = 0.14; // affects the width of peak (more or less darkness)
+constexpr float smoothness_beta = 0.5;   // shifts the gaussian to be symmetric
+const std::string file_name = "/audio_recorder_demo.wav";
 
 unsigned long previousMillis = 0; // Stores last time the action was performed
 unsigned int smoothness_index = 0;
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 32
-#define NUM_BARS 16
-#define BAR_WIDTH 6
-#define MAX_BAR_HEIGHT (SCREEN_HEIGHT - 5)
 
 void draw_animation();
 
@@ -30,7 +27,7 @@ void loop() {
     unsigned long currentMillis = millis();
 
     if (Yboard.get_button(1)) {
-        bool started_recording = Yboard.start_recording(FILE_NAME);
+        bool started_recording = Yboard.start_recording(file_name);
         while (Yboard.get_button(1)) {
             if (started_recording) {
                 Yboard.set_all_leds_color(255, 0, 0);
@@ -56,7 +53,7 @@ void loop() {
 
     if (Yboard.get_button(2)) {
         Yboard.set_all_leds_color(0, 0, 255);
-        if (!Yboard.play_sound_file(FILE_NAME)) {
+        if (!Yboard.play_sound_file(file_name)) {
             for (int i = 0; i < 3; i++) {
                 Yboard.set_all_leds_color(255, 0, 0);
                 delay(100);
@@ -95,12 +92,12 @@ void draw_animation() {
     Yboard.display.drawChar(24, 0, 'C', WHITE, BLACK, 1);
 
     // Draw equalizer bars with random heights to simulate sound levels
-    for (int i = 0; i < NUM_BARS; i++) {
-        int barHeight = random(5, MAX_BAR_HEIGHT); // Random height between 5 and max height
-        int x = i * (BAR_WIDTH + 2);               // Calculate x position of the bar
+    for (int i = 0; i < num_bars; i++) {
+        int barHeight = random(5, max_bar_height); // Random height between 5 and max height
+        int x = i * (bar_width + 2);               // Calculate x position of the bar
 
         // Draw the bar (bottom-up)
-        Yboard.display.fillRect(x, SCREEN_HEIGHT - barHeight, BAR_WIDTH, barHeight, WHITE);
+        Yboard.display.fillRect(x, Yboard.display_height - barHeight, bar_width, barHeight, WHITE);
     }
 
     Yboard.display.display();
