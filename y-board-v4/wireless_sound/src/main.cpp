@@ -1,7 +1,7 @@
 #include "yboard.h"
 #include "yboard_helper.h"
 
-// Classic kid-friendly sound effects stored on the SD card as /<name>.wav
+// Classic kid-friendly sound effects stored on the SD card as /<name>.wav or /<name>.mp3
 const char *SOUNDS[] = {
     "laser",
     "explosion",
@@ -28,6 +28,32 @@ void on_string_received(const char *str) {
     strncpy(pending_sound, str, 32);
     pending_sound[32] = '\0';
     sound_pending = true;
+}
+
+// Try playing <name>.wav, then <name>.mp3. The library picks the right decoder
+// from the file extension, so both formats are fully supported.
+// If neither file exists, blink red 3 times and return false.
+bool play_sound(const char *name) {
+    char filepath[48];
+
+    snprintf(filepath, sizeof(filepath), "/%s.wav", name);
+    if (Yboard.play_sound_file(filepath)) {
+        return true;
+    }
+
+    snprintf(filepath, sizeof(filepath), "/%s.mp3", name);
+    if (Yboard.play_sound_file(filepath)) {
+        return true;
+    }
+
+    // Neither format found — blink red to signal the missing file
+    for (int i = 0; i < 3; i++) {
+        Yboard.set_all_leds_color(255, 0, 0);
+        delay(200);
+        Yboard.set_all_leds_color(0, 0, 0);
+        delay(150);
+    }
+    return false;
 }
 
 // Draw the transmitter screen showing the currently selected sound.
@@ -94,11 +120,12 @@ void setup() {
     Serial.begin(115200);
     Yboard.setup();
     Yboard.display.setTextSize(1);
-    Yboard.set_led_brightness(100);
 
     yboard_radio_begin();
     yboard_radio_set_group(42);
     yboard_radio_on_string(on_string_received);
+
+    Yboard.set_knob(100); // initial brightness
 
     prev_sw1 = Yboard.get_switch(1);
     if (prev_sw1) {
@@ -109,6 +136,17 @@ void setup() {
 }
 
 void loop() {
+    // Knob controls LED brightness (0–255) on both TX and RX
+    int64_t knob = Yboard.get_knob();
+    if (knob < 0) {
+        knob = 0;
+        Yboard.set_knob(0);
+    } else if (knob > 255) {
+        knob = 255;
+        Yboard.set_knob(255);
+    }
+    Yboard.set_led_brightness((uint8_t)knob);
+
     bool sw1 = Yboard.get_switch(1);
 
     // Redraw and reset state whenever the mode switch changes
@@ -162,16 +200,8 @@ void loop() {
             // Light up LEDs blue while playing
             Yboard.set_all_leds_color(0, 100, 255);
 
-            // Play the sound file from the SD card
-            char filepath[48];
-            snprintf(filepath, sizeof(filepath), "/%s.wav", pending_sound);
             Yboard.set_sound_file_volume(8);
-            
-            if (!Yboard.play_sound_file(filepath)) {
-                // WAV file failed, try MP3
-                snprintf(filepath, sizeof(filepath), "/%s.mp3", pending_sound);
-                Yboard.play_sound_file(filepath);
-            }
+            play_sound(pending_sound);
 
             Yboard.set_all_leds_color(0, 0, 0);
             draw_rx_screen("Waiting...");
