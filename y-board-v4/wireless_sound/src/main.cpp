@@ -166,7 +166,12 @@ void loop() {
             char filepath[48];
             snprintf(filepath, sizeof(filepath), "/%s.wav", pending_sound);
             Yboard.set_sound_file_volume(8);
-            Yboard.play_sound_file(filepath);
+            
+            if (!Yboard.play_sound_file(filepath)) {
+                // WAV file failed, try MP3
+                snprintf(filepath, sizeof(filepath), "/%s.mp3", pending_sound);
+                Yboard.play_sound_file(filepath);
+            }
 
             Yboard.set_all_leds_color(0, 0, 0);
             draw_rx_screen("Waiting...");
