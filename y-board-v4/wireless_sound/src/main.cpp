@@ -3,17 +3,8 @@
 
 // Classic kid-friendly sound effects stored on the SD card as /<name>.wav or /<name>.mp3
 const char *SOUNDS[] = {
-    "laser",
-    "explosion",
-    "coin",
-    "powerup",
-    "gameover",
-    "boing",
-    "siren",
-    "tada",
-    "bark",
-    "beep",
-    "surprise",
+    "laser", "explosion", "coin", "powerup", "gameover", "boing",
+    "siren", "tada",      "bark", "beep",    "surprise",
 };
 const int NUM_SOUNDS = sizeof(SOUNDS) / sizeof(SOUNDS[0]);
 
@@ -73,7 +64,7 @@ void draw_tx_screen() {
 
     // Sound name, large and centered
     Yboard.display.setTextSize(2);
-    int name_w = strlen(SOUNDS[selected_sound]) * 12; // 12px per char at size 2
+    int name_w = (int)strlen(SOUNDS[selected_sound]) * 12; // 12px per char at size 2
     int x = (Yboard.display_width - name_w) / 2;
     if (x < 0) {
         x = 0;
@@ -100,7 +91,7 @@ void draw_rx_screen(const char *label) {
 
     // Status label, large and centered
     Yboard.display.setTextSize(2);
-    int w = strlen(label) * 12;
+    int w = (int)strlen(label) * 12;
     int x = (Yboard.display_width - w) / 2;
     if (x < 0) {
         x = 0;
