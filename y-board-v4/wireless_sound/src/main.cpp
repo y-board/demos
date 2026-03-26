@@ -13,6 +13,7 @@ const char *SOUNDS[] = {
     "tada",
     "bark",
     "beep",
+    "surprise",
 };
 const int NUM_SOUNDS = sizeof(SOUNDS) / sizeof(SOUNDS[0]);
 
