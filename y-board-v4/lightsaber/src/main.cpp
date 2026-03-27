@@ -123,6 +123,7 @@ void setup() {
     Serial.begin(115200);
     Yboard.setup();
     Yboard.set_sound_file_volume(8);
+    Yboard.set_knob(150);
     Yboard.set_led_brightness(150);
     Yboard.set_all_leds_color(0, 0, 0);
 
@@ -136,6 +137,17 @@ void setup() {
 }
 
 void loop() {
+    // Knob controls LED brightness (0–200)
+    int64_t knob = Yboard.get_knob();
+    if (knob < 0) {
+        knob = 0;
+        Yboard.set_knob(0);
+    } else if (knob > 200) {
+        knob = 200;
+        Yboard.set_knob(200);
+    }
+    Yboard.set_led_brightness((uint8_t)knob);
+
     bool knob_btn = Yboard.get_knob_button();
 
     // Toggle saber on/off with knob button press
