@@ -58,46 +58,15 @@ bool try_play_file(const char *name, bool background = false) {
     return false;
 }
 
-// Play the idle hum sound. Tries a sound file first, falls back to notes.
-void play_hum() {
-    if (try_play_file("hum", true)) {
-        return;
-    }
-    // Low continuous buzz as fallback
-    Yboard.play_notes_background("V3 O4 T60 C2 C2 C2 C2");
-}
+void play_hum() { try_play_file("hum", true); }
 
-// Play a swing sound. Tries a sound file first, falls back to notes.
-void play_swing() {
-    if (try_play_file("swing", true)) {
-        return;
-    }
-    Yboard.play_notes_background("V5 O5 T240 C+D+F+G+A+");
-}
+void play_swing() { try_play_file("swing", true); }
 
-// Play a hard/clash swing sound.
-void play_hard_swing() {
-    if (try_play_file("clash", true)) {
-        return;
-    }
-    Yboard.play_notes_background("V7 O6 T240 E+F+G+A+B+");
-}
+void play_hard_swing() { try_play_file("clash", true); }
 
-// Play power-on sound
-void play_power_on() {
-    if (try_play_file("on", false)) {
-        return;
-    }
-    Yboard.play_notes("V5 O4 T120 C8 E8 G8 O5 C4");
-}
+void play_power_on() { try_play_file("on", false); }
 
-// Play power-off sound
-void play_power_off() {
-    if (try_play_file("off", false)) {
-        return;
-    }
-    Yboard.play_notes("V5 O5 T120 C8 O4 G8 E8 C4");
-}
+void play_power_off() { try_play_file("off", false); }
 
 // Animate LEDs turning on one by one (saber extending)
 void saber_extend(SaberColor color) {
