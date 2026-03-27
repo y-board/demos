@@ -16,6 +16,7 @@ jobs:
           - clock
           - audio_recorder
           - wifi_sniffer
+          - wireless_sound
     steps:
       - uses: actions/checkout@v4
 
