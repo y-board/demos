@@ -44,14 +44,12 @@ bool try_play_file(const char *name, bool background = false) {
     char path[48];
 
     snprintf(path, sizeof(path), "/lightsaber/%s.wav", name);
-    if (background ? Yboard.play_sound_file_background(path)
-                   : Yboard.play_sound_file(path)) {
+    if (background ? Yboard.play_sound_file_background(path) : Yboard.play_sound_file(path)) {
         return true;
     }
 
     snprintf(path, sizeof(path), "/lightsaber/%s.mp3", name);
-    if (background ? Yboard.play_sound_file_background(path)
-                   : Yboard.play_sound_file(path)) {
+    if (background ? Yboard.play_sound_file_background(path) : Yboard.play_sound_file(path)) {
         return true;
     }
 
