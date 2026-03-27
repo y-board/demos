@@ -127,14 +127,14 @@ void setup() {
 }
 
 void loop() {
-    // Knob controls LED brightness (0–255) on both TX and RX
+    // Knob controls LED brightness (200) on both TX and RX
     int64_t knob = Yboard.get_knob();
     if (knob < 0) {
         knob = 0;
         Yboard.set_knob(0);
-    } else if (knob > 255) {
-        knob = 255;
-        Yboard.set_knob(255);
+    } else if (knob > 200) {
+        knob = 200;
+        Yboard.set_knob(200);
     }
     Yboard.set_led_brightness((uint8_t)knob);
 
