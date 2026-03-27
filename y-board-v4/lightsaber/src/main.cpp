@@ -1,7 +1,9 @@
 #include "yboard.h"
 #include "yboard_helper.h"
 
-// Saber colors: switch 1 picks green vs blue, switch 2 picks red vs the switch-1 color
+// Saber colors selected by switch combo: SW1 and SW2
+// SW1 off, SW2 off = green | SW1 on, SW2 off = blue
+// SW1 off, SW2 on  = red   | SW1 on, SW2 on  = purple
 struct SaberColor {
     uint8_t r, g, b;
 };
@@ -9,6 +11,7 @@ struct SaberColor {
 static const SaberColor COLOR_GREEN = {0, 255, 0};
 static const SaberColor COLOR_BLUE = {0, 80, 255};
 static const SaberColor COLOR_RED = {255, 0, 0};
+static const SaberColor COLOR_PURPLE = {180, 0, 255};
 
 // Accelerometer state for motion detection
 float prev_magnitude = 0;
@@ -27,6 +30,9 @@ SaberColor get_saber_color() {
     bool sw1 = Yboard.get_switch(1);
     bool sw2 = Yboard.get_switch(2);
 
+    if (sw1 && sw2) {
+        return COLOR_PURPLE;
+    }
     if (sw2) {
         return COLOR_RED;
     }
