@@ -69,9 +69,9 @@ void play_swing() { try_play_file("swing", true); }
 
 void play_hard_swing() { try_play_file("clash", true); }
 
-void play_power_on() { try_play_file("on", false); }
+void play_power_on() { try_play_file("on", true); }
 
-void play_power_off() { try_play_file("off", false); }
+void play_power_off() { try_play_file("off", true); }
 
 // Animate LEDs turning on one by one (saber extending)
 void saber_extend(SaberColor color) {
