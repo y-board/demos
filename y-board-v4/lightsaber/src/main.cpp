@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "yboard.h"
 #include "yboard_helper.h"
 
@@ -44,15 +46,20 @@ bool try_play_file(const char *name, bool background = false) {
     char path[48];
 
     snprintf(path, sizeof(path), "/lightsaber/%s.wav", name);
+    Serial.printf("Trying: %s\n", path);
     if (background ? Yboard.play_sound_file_background(path) : Yboard.play_sound_file(path)) {
+        Serial.println("  -> OK");
         return true;
     }
 
     snprintf(path, sizeof(path), "/lightsaber/%s.mp3", name);
+    Serial.printf("Trying: %s\n", path);
     if (background ? Yboard.play_sound_file_background(path) : Yboard.play_sound_file(path)) {
+        Serial.println("  -> OK");
         return true;
     }
 
+    Serial.printf("  -> Not found: %s\n", name);
     return false;
 }
 
@@ -179,7 +186,7 @@ void loop() {
     // Read accelerometer and detect motion
     if (Yboard.accelerometer_available()) {
         float magnitude = yboard_accel_magnitude();
-        float delta = abs(magnitude - prev_magnitude);
+        float delta = fabsf(magnitude - prev_magnitude);
         prev_magnitude = magnitude;
 
         if (delta > HARD_SWING_THRESHOLD) {
@@ -208,12 +215,10 @@ void loop() {
         draw_display("~ vwooom ~");
     }
 
-    // Keep the idle hum going
-    if (!Yboard.is_audio_playing() || (millis() - last_hum_time > HUM_INTERVAL_MS)) {
-        if (millis() > swing_end_time + 100) {
-            play_hum();
-            last_hum_time = millis();
-        }
+    // Keep the idle hum going — only restart after the interval to avoid hammering the audio system
+    if (millis() - last_hum_time > HUM_INTERVAL_MS && millis() > swing_end_time + 100) {
+        play_hum();
+        last_hum_time = millis();
     }
 
     // Subtle LED flicker for ambiance
