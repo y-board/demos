@@ -43,6 +43,8 @@ SaberColor get_saber_color() {
 bool try_play_file(const char *name, bool background = false) {
     char path[48];
 
+    Yboard.stop_audio();
+
     snprintf(path, sizeof(path), "/lightsaber/%s.wav", name);
     Serial.printf("Trying: %s\n", path);
     if (background ? Yboard.play_sound_file_background(path) : Yboard.play_sound_file(path)) {
@@ -166,7 +168,6 @@ void loop() {
 
         } else {
             saber_on = false;
-            Yboard.stop_audio();
             draw_display("Press knob to start");
             play_power_off();
             saber_retract();
@@ -189,14 +190,12 @@ void loop() {
 
         if (delta > HARD_SWING_THRESHOLD) {
             // Hard swing / clash
-            Yboard.stop_audio();
             play_hard_swing();
             swing_flash(color, true);
             swing_end_time = millis() + 300;
             draw_display("!! CLASH !!");
         } else if (delta > SWING_THRESHOLD) {
             // Normal swing
-            Yboard.stop_audio();
             play_swing();
             swing_flash(color, false);
             swing_end_time = millis() + 200;
