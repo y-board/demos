@@ -188,13 +188,13 @@ void loop() {
         float delta = fabsf(magnitude - prev_magnitude);
         prev_magnitude = magnitude;
 
-        if (delta > HARD_SWING_THRESHOLD) {
+        if (swing_end_time == 0 && delta > HARD_SWING_THRESHOLD) {
             // Hard swing / clash
             play_hard_swing();
             swing_flash(color, true);
             swing_end_time = millis() + 300;
             draw_display("!! CLASH !!");
-        } else if (delta > SWING_THRESHOLD) {
+        } else if (swing_end_time == 0 && delta > SWING_THRESHOLD) {
             // Normal swing
             play_swing();
             swing_flash(color, false);
