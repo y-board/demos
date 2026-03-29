@@ -24,9 +24,7 @@ const float SWING_THRESHOLD = 400;
 const float HARD_SWING_THRESHOLD = 800;
 
 // Timing
-unsigned long last_hum_time = 0;
 unsigned long swing_end_time = 0;
-const unsigned long HUM_INTERVAL_MS = 1200;
 
 SaberColor get_saber_color() {
     bool sw1 = Yboard.get_switch(1);
@@ -165,7 +163,7 @@ void loop() {
             draw_display("~ vwooom ~");
             play_power_on();
             saber_extend(color);
-            last_hum_time = millis();
+
         } else {
             saber_on = false;
             Yboard.stop_audio();
@@ -215,10 +213,9 @@ void loop() {
         draw_display("~ vwooom ~");
     }
 
-    // Keep the idle hum going — only restart after the interval to avoid hammering the audio system
-    if (millis() - last_hum_time > HUM_INTERVAL_MS && millis() > swing_end_time + 100) {
+    // Restart the hum only when audio has finished playing
+    if (!Yboard.is_audio_playing() && millis() > swing_end_time + 100) {
         play_hum();
-        last_hum_time = millis();
     }
 
     // Subtle LED flicker for ambiance
