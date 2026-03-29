@@ -17,6 +17,7 @@ jobs:
           - audio_recorder
           - wifi_sniffer
           - wireless_sound
+          - lightsaber
     steps:
       - uses: actions/checkout@v4
 
