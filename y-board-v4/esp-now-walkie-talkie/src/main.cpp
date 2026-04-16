@@ -28,19 +28,19 @@
  *   └──────────────────────────┘
  */
 
-#include "yboard.h"
 #include "esp_now.h"
-#include "esp_wifi.h"
 #include "esp_random.h"
+#include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "freertos/stream_buffer.h"
+#include "freertos/task.h"
+#include "yboard.h"
 #include <string.h>
 
 // ── Audio format ───────────────────────────────────────────────────────────────
 // 16 kHz matches the speaker's native I2S rate; mic is reconfigured to match.
-static constexpr int SAMPLE_RATE   = 16000;
-static constexpr int BITS          = 16;
+static constexpr int SAMPLE_RATE = 16000;
+static constexpr int BITS = 16;
 static constexpr int BYTES_PER_SMP = BITS / 8;
 
 // ── Packet layout ──────────────────────────────────────────────────────────────
@@ -49,40 +49,40 @@ static constexpr int BYTES_PER_SMP = BITS / 8;
 // Byte 3  : seq       (rolling 0-255)
 // Byte 4  : flags     (0x01 = last packet in transmission)
 // Bytes 5+: raw 16-bit PCM samples, little-endian
-static constexpr int PKT_HDR       = 5;
-static constexpr int PKT_AUDIO     = 240;   // 120 samples × 2 bytes = 7.5 ms
-static constexpr int PKT_TOTAL     = PKT_HDR + PKT_AUDIO;   // 245 ≤ 250 ✓
+static constexpr int PKT_HDR = 5;
+static constexpr int PKT_AUDIO = 240;                 // 120 samples × 2 bytes = 7.5 ms
+static constexpr int PKT_TOTAL = PKT_HDR + PKT_AUDIO; // 245 ≤ 250 ✓
 static_assert(PKT_TOTAL <= 250, "ESP-NOW max payload is 250 bytes");
 
-static const uint8_t BCAST[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+static const uint8_t BCAST[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // ── I2S pin definitions (Y-Board V4) ──────────────────────────────────────────
-static constexpr int MIC_PIN_WS   = 41;
+static constexpr int MIC_PIN_WS = 41;
 static constexpr int MIC_PIN_DATA = 40;
 static constexpr int MIC_I2S_PORT = 0;
 
-static constexpr int SPK_PIN_WS   = 47;
-static constexpr int SPK_PIN_BCK  = 21;
+static constexpr int SPK_PIN_WS = 47;
+static constexpr int SPK_PIN_BCK = 21;
 static constexpr int SPK_PIN_DATA = 14;
 static constexpr int SPK_I2S_PORT = 1;
 
 // ── State ──────────────────────────────────────────────────────────────────────
 enum WTState : uint8_t { ST_IDLE, ST_TX, ST_RX };
-static volatile WTState g_state   = ST_IDLE;
-static volatile int8_t  g_rssi    = 0;     // dBm; 0 = no packets seen
-static          int     g_channel = 1;
+static volatile WTState g_state = ST_IDLE;
+static volatile int8_t g_rssi = 0; // dBm; 0 = no packets seen
+static int g_channel = 1;
 
 // ── TX bookkeeping ────────────────────────────────────────────────────────────
 static uint8_t g_tx_session = 0;
-static uint8_t g_tx_seq     = 0;
-static volatile uint32_t g_tx_pkt_count = 0;  // for display
+static uint8_t g_tx_seq = 0;
+static volatile uint32_t g_tx_pkt_count = 0; // for display
 
 // ── RX bookkeeping ────────────────────────────────────────────────────────────
 // StreamBuffer bridges ESP-NOW callback (core 0) ↔ speaker task (core 0).
 // Capacity: 16 packets = 120 ms of audio — enough to absorb ESP-NOW jitter.
-static constexpr int SBUF_SIZE   = PKT_AUDIO * 16;
-static StreamBufferHandle_t g_audio_sbuf   = nullptr;
-static volatile uint32_t    g_rx_pkt_count = 0;
+static constexpr int SBUF_SIZE = PKT_AUDIO * 16;
+static StreamBufferHandle_t g_audio_sbuf = nullptr;
+static volatile uint32_t g_rx_pkt_count = 0;
 
 // Flag set by speaker task when the stream dries up; main loop acts on it.
 static volatile bool g_rx_ended = false;
@@ -91,11 +91,16 @@ static volatile bool g_rx_ended = false;
 // ESP-NOW callbacks
 // ─────────────────────────────────────────────────────────────────────────────
 
-static void espnow_recv(const esp_now_recv_info_t *info,
-                        const uint8_t *data, int len) {
-    if (len < PKT_HDR) return;
-    if (data[0] != 'W' || data[1] != 'T') return;
-    if (g_state == ST_TX) return;   // ignore our own echoes while transmitting
+static void espnow_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+    if (len < PKT_HDR) {
+        return;
+    }
+    if (data[0] != 'W' || data[1] != 'T') {
+        return;
+    }
+    if (g_state == ST_TX) {
+        return; // ignore our own echoes while transmitting
+    }
 
     g_rssi = (int8_t)info->rx_ctrl->rssi;
 
@@ -137,8 +142,12 @@ static void radio_init() {
 }
 
 static void set_channel(int ch) {
-    if (ch < 1)  ch = 13;
-    if (ch > 13) ch = 1;
+    if (ch < 1) {
+        ch = 13;
+    }
+    if (ch > 13) {
+        ch = 1;
+    }
     g_channel = ch;
     esp_wifi_set_channel((uint8_t)g_channel, WIFI_SECOND_CHAN_NONE);
     Serial.printf("Channel → %d\n", g_channel);
@@ -154,29 +163,29 @@ static void audio_init() {
     // ── Microphone ────────────────────────────────────────────────
     // get_microphone_stream() returns the raw I2SStream used by the yboard mic.
     // We call begin() with a fresh config to change the sample rate.
-    auto &mic     = Yboard.get_microphone_stream();
-    auto  mic_cfg = mic.defaultConfig(RX_MODE);
-    mic_cfg.sample_rate    = SAMPLE_RATE;
-    mic_cfg.channels       = 1;
+    auto &mic = Yboard.get_microphone_stream();
+    auto mic_cfg = mic.defaultConfig(RX_MODE);
+    mic_cfg.sample_rate = SAMPLE_RATE;
+    mic_cfg.channels = 1;
     mic_cfg.bits_per_sample = BITS;
     // Preserve PDM signal type and I2S format (set by yboard's setup_mic)
-    mic_cfg.pin_ws   = MIC_PIN_WS;
+    mic_cfg.pin_ws = MIC_PIN_WS;
     mic_cfg.pin_data = MIC_PIN_DATA;
-    mic_cfg.port_no  = MIC_I2S_PORT;
+    mic_cfg.port_no = MIC_I2S_PORT;
     mic.begin(mic_cfg);
 
     // ── Speaker ───────────────────────────────────────────────────
     // get_speaker_stream() returns the raw I2SStream; we write PCM directly,
     // bypassing the yboard WAV/MP3 decoder chain entirely.
-    auto &spk     = Yboard.get_speaker_stream();
-    auto  spk_cfg = spk.defaultConfig(TX_MODE);
-    spk_cfg.sample_rate     = SAMPLE_RATE;
-    spk_cfg.channels        = 1;
+    auto &spk = Yboard.get_speaker_stream();
+    auto spk_cfg = spk.defaultConfig(TX_MODE);
+    spk_cfg.sample_rate = SAMPLE_RATE;
+    spk_cfg.channels = 1;
     spk_cfg.bits_per_sample = BITS;
-    spk_cfg.pin_ws   = SPK_PIN_WS;
-    spk_cfg.pin_bck  = SPK_PIN_BCK;
+    spk_cfg.pin_ws = SPK_PIN_WS;
+    spk_cfg.pin_bck = SPK_PIN_BCK;
     spk_cfg.pin_data = SPK_PIN_DATA;
-    spk_cfg.port_no  = SPK_I2S_PORT;
+    spk_cfg.port_no = SPK_I2S_PORT;
     spk.begin(spk_cfg);
 }
 
@@ -193,14 +202,13 @@ static void speaker_task(void *) {
     constexpr TickType_t SILENCE_TIMEOUT = pdMS_TO_TICKS(300);
 
     while (true) {
-        size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf),
-                                          SILENCE_TIMEOUT);
+        size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf), SILENCE_TIMEOUT);
         if (got > 0) {
             spk.write(buf, got);
         } else {
             // 300 ms of silence: the transmission has ended
             if (g_state == ST_RX) {
-                g_rx_ended = true;   // main loop will clean up display/LEDs
+                g_rx_ended = true; // main loop will clean up display/LEDs
             }
         }
     }
@@ -240,27 +248,35 @@ static void transmit_packet(bool last) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 static void draw_antenna(int x, int y) {
-    Yboard.display.drawFastVLine(x + 4, y,     5, WHITE);   // mast
-    Yboard.display.drawLine(x + 4, y + 2, x + 1, y + 5, WHITE);  // inner-L
-    Yboard.display.drawLine(x + 4, y + 2, x + 7, y + 5, WHITE);  // inner-R
-    Yboard.display.drawLine(x + 4, y,     x,     y + 5, WHITE);  // outer-L
-    Yboard.display.drawLine(x + 4, y,     x + 8, y + 5, WHITE);  // outer-R
-    Yboard.display.drawFastHLine(x + 2, y + 5, 5, WHITE);         // base
+    Yboard.display.drawFastVLine(x + 4, y, 5, WHITE);           // mast
+    Yboard.display.drawLine(x + 4, y + 2, x + 1, y + 5, WHITE); // inner-L
+    Yboard.display.drawLine(x + 4, y + 2, x + 7, y + 5, WHITE); // inner-R
+    Yboard.display.drawLine(x + 4, y, x, y + 5, WHITE);         // outer-L
+    Yboard.display.drawLine(x + 4, y, x + 8, y + 5, WHITE);     // outer-R
+    Yboard.display.drawFastHLine(x + 2, y + 5, 5, WHITE);       // base
 }
 
 static void draw_sig_bars(int x, int y) {
     int filled = 0;
-    if      (g_rssi >= -60) filled = 4;
-    else if (g_rssi >= -70) filled = 3;
-    else if (g_rssi >= -80) filled = 2;
-    else if (g_rssi != 0)   filled = 1;
+    if (g_rssi >= -60) {
+        filled = 4;
+    } else if (g_rssi >= -70) {
+        filled = 3;
+    } else if (g_rssi >= -80) {
+        filled = 2;
+    } else if (g_rssi != 0) {
+        filled = 1;
+    }
 
     for (int i = 0; i < 4; i++) {
-        int h  = (i + 1) * 2;
+        int h = (i + 1) * 2;
         int bx = x + i * 5;
         int by = y + (8 - h);
-        if (i < filled) Yboard.display.fillRect(bx, by, 4, h, WHITE);
-        else            Yboard.display.drawRect(bx, by, 4, h, WHITE);
+        if (i < filled) {
+            Yboard.display.fillRect(bx, by, 4, h, WHITE);
+        } else {
+            Yboard.display.drawRect(bx, by, 4, h, WHITE);
+        }
     }
 }
 
@@ -305,7 +321,9 @@ static void draw_screen(const char *status, const char *footer = nullptr) {
     Yboard.display.setTextSize(2);
     int sw = (int)strlen(status) * 12;
     int sx = (128 - sw) / 2;
-    if (sx < 1) sx = 1;
+    if (sx < 1) {
+        sx = 1;
+    }
     Yboard.display.setCursor(sx, 28);
     Yboard.display.print(status);
 
@@ -327,26 +345,41 @@ static void draw_screen(const char *status, const char *footer = nullptr) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 static void leds_breath_blue() {
-    static uint32_t t = 0; static int bv = 0, dir = 1;
-    if (millis() - t < 30) return;
+    static uint32_t t = 0;
+    static int bv = 0, dir = 1;
+    if (millis() - t < 30) {
+        return;
+    }
     t = millis();
     bv += dir * 2;
-    if (bv >= 100) dir = -1;
-    if (bv <= 0)   dir =  1;
+    if (bv >= 100) {
+        dir = -1;
+    }
+    if (bv <= 0) {
+        dir = 1;
+    }
     Yboard.set_all_leds_color(0, 0, (uint8_t)bv);
 }
 
 static void leds_pulse_red() {
-    static uint32_t t = 0; static bool on = true;
-    if (millis() - t < 300) return;
-    t = millis(); on = !on;
+    static uint32_t t = 0;
+    static bool on = true;
+    if (millis() - t < 300) {
+        return;
+    }
+    t = millis();
+    on = !on;
     Yboard.set_all_leds_color(on ? 200 : 50, 0, 0);
 }
 
 static void leds_pulse_blue() {
-    static uint32_t t = 0; static bool on = true;
-    if (millis() - t < 300) return;
-    t = millis(); on = !on;
+    static uint32_t t = 0;
+    static bool on = true;
+    if (millis() - t < 300) {
+        return;
+    }
+    t = millis();
+    on = !on;
     Yboard.set_all_leds_color(0, 0, on ? 200 : 50);
 }
 
@@ -382,7 +415,7 @@ void setup() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 void loop() {
-    bool btn    = Yboard.get_button(YBoardV4::button_center);
+    bool btn = Yboard.get_button(YBoardV4::button_center);
     bool btn_up = Yboard.get_button(YBoardV4::button_up);
     bool btn_dn = Yboard.get_button(YBoardV4::button_down);
 
@@ -404,8 +437,14 @@ void loop() {
 
         // Channel selection on edge trigger
         static bool prev_up = false, prev_dn = false;
-        if (btn_up && !prev_up) { set_channel(g_channel + 1); draw_screen("IDLE"); }
-        if (btn_dn && !prev_dn) { set_channel(g_channel - 1); draw_screen("IDLE"); }
+        if (btn_up && !prev_up) {
+            set_channel(g_channel + 1);
+            draw_screen("IDLE");
+        }
+        if (btn_dn && !prev_dn) {
+            set_channel(g_channel - 1);
+            draw_screen("IDLE");
+        }
         prev_up = btn_up;
         prev_dn = btn_dn;
 
@@ -417,9 +456,9 @@ void loop() {
         }
 
         if (btn) {
-            g_state       = ST_TX;
-            g_tx_session  = (uint8_t)(esp_random() & 0xFF);
-            g_tx_seq      = 0;
+            g_state = ST_TX;
+            g_tx_session = (uint8_t)(esp_random() & 0xFF);
+            g_tx_seq = 0;
             g_tx_pkt_count = 0;
             Yboard.set_all_leds_color(180, 0, 0);
             draw_screen("TX", "Release to stop");
@@ -433,7 +472,7 @@ void loop() {
         if (!btn) {
             // Button released: send a silent "last" packet as end-of-transmission
             // marker, then return to idle.
-            uint8_t end_pkt[PKT_HDR] = {'W','T', g_tx_session, g_tx_seq++, 0x01};
+            uint8_t end_pkt[PKT_HDR] = {'W', 'T', g_tx_session, g_tx_seq++, 0x01};
             esp_now_send(BCAST, end_pkt, PKT_HDR);
 
             g_state = ST_IDLE;
@@ -475,5 +514,7 @@ void loop() {
 
     // No delay — the mic I2S read in transmit_packet() rate-limits TX naturally.
     // In IDLE/RX, add a small yield so other tasks (speaker, WiFi) get CPU time.
-    if (g_state != ST_TX) delay(10);
+    if (g_state != ST_TX) {
+        delay(10);
+    }
 }
