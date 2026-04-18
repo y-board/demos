@@ -69,8 +69,8 @@ static constexpr int SPK_I2S_PORT = 1;
 // ── State ──────────────────────────────────────────────────────────────────────
 enum WTState : uint8_t { ST_IDLE, ST_TX, ST_RX };
 static volatile WTState g_state = ST_IDLE;
-static volatile int8_t g_rssi = 0;     // smoothed dBm; 0 = no packets seen
-static volatile int g_rssi_x16 = 0;    // RSSI×16 EMA accumulator
+static volatile int8_t g_rssi = 0;  // smoothed dBm; 0 = no packets seen
+static volatile int g_rssi_x16 = 0; // RSSI×16 EMA accumulator
 static volatile bool g_rssi_init = false;
 static int g_channel = 1;
 
@@ -272,8 +272,7 @@ static void speaker_task(void *) {
             if (xStreamBufferBytesAvailable(g_audio_sbuf) >= prefill_bytes) {
                 playing = true;
             } else {
-                size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf),
-                                                  SILENCE_TIMEOUT);
+                size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf), SILENCE_TIMEOUT);
                 if (got == 0) {
                     if (g_state == ST_RX) {
                         g_rx_ended = true;
@@ -330,10 +329,11 @@ static void transmit_packet(bool last) {
     int n_samples = PKT_AUDIO / 2;
     for (int i = 0; i < n_samples; i++) {
         int32_t s = (int32_t)samples[i] * MIC_GAIN;
-        if (s > 32767)
+        if (s > 32767) {
             s = 32767;
-        else if (s < -32768)
+        } else if (s < -32768) {
             s = -32768;
+        }
         samples[i] = (int16_t)s;
     }
 
@@ -345,15 +345,21 @@ static void transmit_packet(bool last) {
 // Display — retro walkie-talkie style
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Radio-tower style antenna: top dot + vertical mast + diagonal supports + base.
-// Footprint: 7 wide × 9 tall.
-static void draw_antenna(int x, int y) {
-    Yboard.display.drawPixel(x + 3, y, WHITE);                     // tip dot
-    Yboard.display.drawFastVLine(x + 3, y + 1, 7, WHITE);          // mast
-    Yboard.display.drawLine(x + 3, y + 4, x + 1, y + 8, WHITE);    // L brace
-    Yboard.display.drawLine(x + 3, y + 4, x + 5, y + 8, WHITE);    // R brace
-    Yboard.display.drawFastHLine(x, y + 8, 7, WHITE);              // base
-}
+// Y-Board block-Y logo, 10×10 pixel bitmap (MSB-first per row).
+static const uint8_t Y_LOGO[] = {
+    0xF3, 0xC0, // ####  ####   caps
+    0xF3, 0xC0, // ####  ####
+    0x61, 0x80, //  ##    ##    arms
+    0x73, 0x80, //  ###  ###
+    0x3F, 0x00, //   ######     arms merge
+    0x1E, 0x00, //    ####
+    0x0C, 0x00, //     ##       stem
+    0x0C, 0x00, //     ##
+    0x1E, 0x00, //    ####      foot
+    0x1E, 0x00, //    ####
+};
+
+static void draw_y_logo(int x, int y) { Yboard.display.drawBitmap(x, y, Y_LOGO, 10, 10, WHITE); }
 
 static void draw_sig_bars(int x, int y) {
     // Bars use thresholds typical for 2.4 GHz reception.
@@ -385,8 +391,12 @@ static void draw_sig_bars(int x, int y) {
 // 10-segment volume bar, 4 wide × 8 tall per segment, 1 px gap.
 static void draw_vol_bar(int x, int y) {
     int filled = (g_volume + 5) / 10;
-    if (filled > 10) filled = 10;
-    if (filled < 0) filled = 0;
+    if (filled > 10) {
+        filled = 10;
+    }
+    if (filled < 0) {
+        filled = 0;
+    }
     for (int i = 0; i < 10; i++) {
         int bx = x + i * 5;
         if (i < filled) {
@@ -408,51 +418,49 @@ static void draw_screen(const char *status, const char *footer = nullptr) {
     Yboard.display.setTextSize(1);
     Yboard.display.setCursor(3, 2);
     Yboard.display.print("WALKIE-TALKIE");
-    draw_antenna(118, 1);
-    Yboard.display.drawFastHLine(1, 11, 126, WHITE);
+    draw_y_logo(116, 2);
+    Yboard.display.drawFastHLine(1, 13, 126, WHITE);
 
-    // ── Channel + signal row (y 13-20) ────────────────────────────
+    // ── Channel + signal row (y 15-22) ────────────────────────────
     char ch_str[10];
     snprintf(ch_str, sizeof(ch_str), "CH:%02d", g_channel);
-    Yboard.display.setCursor(3, 13);
+    Yboard.display.setCursor(3, 15);
     Yboard.display.print(ch_str);
 
-    draw_sig_bars(40, 13);
+    draw_sig_bars(40, 15);
 
     if (g_rssi_init) {
         char dbm[10];
         snprintf(dbm, sizeof(dbm), "%ddBm", (int)g_rssi);
         // right-align so a "-99dBm" still fits cleanly
         int w = (int)strlen(dbm) * 6;
-        Yboard.display.setCursor(124 - w, 13);
+        Yboard.display.setCursor(124 - w, 15);
         Yboard.display.print(dbm);
     } else {
-        Yboard.display.setCursor(94, 13);
+        Yboard.display.setCursor(94, 15);
         Yboard.display.print("---");
     }
 
-    Yboard.display.drawFastHLine(1, 22, 126, WHITE);
+    Yboard.display.drawFastHLine(1, 24, 126, WHITE);
 
-    // ── Volume + jitter row (y 24-31) ─────────────────────────────
-    draw_vol_bar(2, 24); // 10 × 5 = 50 px, ends x=52
+    // ── Volume + jitter row (y 26-33) ─────────────────────────────
+    draw_vol_bar(2, 26); // 10 × 5 = 50 px, ends x=52
     char jit_str[10];
     snprintf(jit_str, sizeof(jit_str), "JIT:%02d", g_jitter_pkts);
-    Yboard.display.setCursor(89, 24);
+    Yboard.display.setCursor(89, 26);
     Yboard.display.print(jit_str);
 
-    Yboard.display.drawFastHLine(1, 33, 126, WHITE);
+    Yboard.display.drawFastHLine(1, 35, 126, WHITE);
 
-    // ── Status word (y 36-51, size 2) ─────────────────────────────
+    // ── Status word (y 38-53, size 2) ─────────────────────────────
     Yboard.display.setTextSize(2);
     int sw_px = (int)strlen(status) * 12;
     int sx = (128 - sw_px) / 2;
     if (sx < 1) {
         sx = 1;
     }
-    Yboard.display.setCursor(sx, 36);
+    Yboard.display.setCursor(sx, 38);
     Yboard.display.print(status);
-
-    Yboard.display.drawFastHLine(1, 53, 126, WHITE);
 
     // ── Footer (y 55-62) ──────────────────────────────────────────
     const char *h = footer ? footer : "^v=CH  [CTR]=TALK";
