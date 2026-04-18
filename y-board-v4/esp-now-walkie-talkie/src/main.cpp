@@ -48,10 +48,11 @@ static constexpr int BYTES_PER_SMP = BITS / 8;
 // Byte 2  : session   (new value = new transmission)
 // Byte 3  : seq       (rolling 0-255)
 // Byte 4  : flags     (0x01 = last packet in transmission)
-// Bytes 5+: raw 16-bit PCM samples, little-endian
-static constexpr int PKT_HDR = 5;
+// Byte 5  : channel   (1-13; RX drops if mismatched — adjacent ch leak through)
+// Bytes 6+: raw 16-bit PCM samples, little-endian
+static constexpr int PKT_HDR = 6;
 static constexpr int PKT_AUDIO = 240;                 // 120 samples × 2 bytes = 7.5 ms
-static constexpr int PKT_TOTAL = PKT_HDR + PKT_AUDIO; // 245 ≤ 250 ✓
+static constexpr int PKT_TOTAL = PKT_HDR + PKT_AUDIO; // 246 ≤ 250 ✓
 static_assert(PKT_TOTAL <= 250, "ESP-NOW max payload is 250 bytes");
 
 static const uint8_t BCAST[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -139,6 +140,10 @@ static void espnow_recv(const uint8_t *mac_addr, const uint8_t *data, int len) {
         return;
     }
     if (data[0] != 'W' || data[1] != 'T') {
+        return;
+    }
+    // Drop packets stamped with a different channel (adjacent-ch leak).
+    if (data[5] != (uint8_t)g_channel) {
         return;
     }
     if (g_state == ST_TX) {
@@ -313,6 +318,7 @@ static void transmit_packet(bool last) {
     pkt[2] = g_tx_session;
     pkt[3] = g_tx_seq++;
     pkt[4] = last ? 0x01 : 0x00;
+    pkt[5] = (uint8_t)g_channel;
 
     uint8_t *audio = pkt + PKT_HDR;
 
@@ -649,7 +655,8 @@ void loop() {
         if (!btn) {
             // Button released: send a silent "last" packet as end-of-transmission
             // marker, then return to idle.
-            uint8_t end_pkt[PKT_HDR] = {'W', 'T', g_tx_session, g_tx_seq++, 0x01};
+            uint8_t end_pkt[PKT_HDR] = {'W',         'T',    g_tx_session,
+                                        g_tx_seq++, 0x01,   (uint8_t)g_channel};
             esp_now_send(BCAST, end_pkt, PKT_HDR);
 
             g_state = ST_IDLE;
