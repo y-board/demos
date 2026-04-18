@@ -69,8 +69,14 @@ static constexpr int SPK_I2S_PORT = 1;
 // ── State ──────────────────────────────────────────────────────────────────────
 enum WTState : uint8_t { ST_IDLE, ST_TX, ST_RX };
 static volatile WTState g_state = ST_IDLE;
-static volatile int8_t g_rssi = 0; // dBm; 0 = no packets seen
+static volatile int8_t g_rssi = 0;     // smoothed dBm; 0 = no packets seen
+static volatile int g_rssi_x16 = 0;    // RSSI×16 EMA accumulator
+static volatile bool g_rssi_init = false;
 static int g_channel = 1;
+
+// ── User controls ─────────────────────────────────────────────────────────────
+static volatile int g_volume = 50;     // 0-100, set by knob, applied on RX
+static volatile int g_jitter_pkts = 6; // 1-16, from DIP-style switches
 
 // ── TX bookkeeping ────────────────────────────────────────────────────────────
 static uint8_t g_tx_session = 0;
@@ -86,6 +92,42 @@ static volatile uint32_t g_rx_pkt_count = 0;
 
 // Flag set by speaker task when the stream dries up; main loop acts on it.
 static volatile bool g_rx_ended = false;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Promiscuous RX — the only way to get RSSI on this SDK (the ESP-NOW recv
+// callback's old signature does not expose rx_ctrl). We scan the action-frame
+// body for our 'WT' magic and smooth the RSSI with an EMA.
+// ─────────────────────────────────────────────────────────────────────────────
+
+static void promisc_cb(void *buf, wifi_promiscuous_pkt_type_t type) {
+    if (type != WIFI_PKT_MGMT) {
+        return;
+    }
+    auto *pkt = static_cast<wifi_promiscuous_pkt_t *>(buf);
+    int len = pkt->rx_ctrl.sig_len;
+    if (len < 30) {
+        return;
+    }
+    int scan_end = len - 1;
+    if (scan_end > 280) {
+        scan_end = 280;
+    }
+    const uint8_t *p = pkt->payload;
+    for (int i = 24; i < scan_end; i++) {
+        if (p[i] == 'W' && p[i + 1] == 'T') {
+            int sample_x16 = (int)pkt->rx_ctrl.rssi << 4;
+            if (!g_rssi_init) {
+                g_rssi_x16 = sample_x16;
+                g_rssi_init = true;
+            } else {
+                // EMA alpha = 1/8: new = old*7/8 + sample/8
+                g_rssi_x16 = (g_rssi_x16 * 7 + sample_x16) / 8;
+            }
+            g_rssi = (int8_t)(g_rssi_x16 >> 4);
+            return;
+        }
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESP-NOW callbacks
@@ -137,6 +179,13 @@ static void radio_init() {
     peer.channel = 0;
     peer.encrypt = false;
     esp_now_add_peer(&peer);
+
+    // Enable promiscuous mode to capture RSSI for received ESP-NOW packets.
+    wifi_promiscuous_filter_t filter = {};
+    filter.filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT;
+    esp_wifi_set_promiscuous_filter(&filter);
+    esp_wifi_set_promiscuous_rx_cb(promisc_cb);
+    esp_wifi_set_promiscuous(true);
 
     esp_wifi_set_channel((uint8_t)g_channel, WIFI_SECOND_CHAN_NONE);
 }
@@ -203,18 +252,26 @@ static void speaker_task(void *) {
 
     uint8_t buf[PKT_AUDIO];
     constexpr TickType_t SILENCE_TIMEOUT = pdMS_TO_TICKS(300);
-    // Jitter buffer: pre-fill N packets before starting playback so brief
-    // network gaps don't starve the I2S DMA (which would click/pop).
-    // 6 pkts = ~45 ms of headroom.
-    constexpr size_t JITTER_PREFILL = PKT_AUDIO * 6;
     bool playing = false;
 
+    auto write_with_volume = [&](size_t n) {
+        // Apply software volume (we bypass yboard's VolumeStream).
+        int vol = g_volume;
+        int16_t *s = reinterpret_cast<int16_t *>(buf);
+        int ns = (int)(n / 2);
+        for (int i = 0; i < ns; i++) {
+            s[i] = (int16_t)((int32_t)s[i] * vol / 100);
+        }
+        spk.write(buf, n);
+    };
+
     while (true) {
+        // Pre-fill size is configurable via DIP-style switches; read each loop.
+        size_t prefill_bytes = (size_t)g_jitter_pkts * PKT_AUDIO;
         if (!playing) {
-            if (xStreamBufferBytesAvailable(g_audio_sbuf) >= JITTER_PREFILL) {
+            if (xStreamBufferBytesAvailable(g_audio_sbuf) >= prefill_bytes) {
                 playing = true;
             } else {
-                // Wait for more data, but bail out if transmission ended
                 size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf),
                                                   SILENCE_TIMEOUT);
                 if (got == 0) {
@@ -223,14 +280,14 @@ static void speaker_task(void *) {
                     }
                     continue;
                 }
-                spk.write(buf, got);
+                write_with_volume(got);
                 continue;
             }
         }
 
         size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf), SILENCE_TIMEOUT);
         if (got > 0) {
-            spk.write(buf, got);
+            write_with_volume(got);
         } else {
             // 300 ms of silence: the transmission has ended
             playing = false;
@@ -288,25 +345,29 @@ static void transmit_packet(bool last) {
 // Display — retro walkie-talkie style
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Radio-tower style antenna: top dot + vertical mast + diagonal supports + base.
+// Footprint: 7 wide × 9 tall.
 static void draw_antenna(int x, int y) {
-    Yboard.display.drawFastVLine(x + 4, y, 5, WHITE);           // mast
-    Yboard.display.drawLine(x + 4, y + 2, x + 1, y + 5, WHITE); // inner-L
-    Yboard.display.drawLine(x + 4, y + 2, x + 7, y + 5, WHITE); // inner-R
-    Yboard.display.drawLine(x + 4, y, x, y + 5, WHITE);         // outer-L
-    Yboard.display.drawLine(x + 4, y, x + 8, y + 5, WHITE);     // outer-R
-    Yboard.display.drawFastHLine(x + 2, y + 5, 5, WHITE);       // base
+    Yboard.display.drawPixel(x + 3, y, WHITE);                     // tip dot
+    Yboard.display.drawFastVLine(x + 3, y + 1, 7, WHITE);          // mast
+    Yboard.display.drawLine(x + 3, y + 4, x + 1, y + 8, WHITE);    // L brace
+    Yboard.display.drawLine(x + 3, y + 4, x + 5, y + 8, WHITE);    // R brace
+    Yboard.display.drawFastHLine(x, y + 8, 7, WHITE);              // base
 }
 
 static void draw_sig_bars(int x, int y) {
+    // Bars use thresholds typical for 2.4 GHz reception.
     int filled = 0;
-    if (g_rssi >= -60) {
-        filled = 4;
-    } else if (g_rssi >= -70) {
-        filled = 3;
-    } else if (g_rssi >= -80) {
-        filled = 2;
-    } else if (g_rssi != 0) {
-        filled = 1;
+    if (g_rssi_init) {
+        if (g_rssi >= -55) {
+            filled = 4;
+        } else if (g_rssi >= -65) {
+            filled = 3;
+        } else if (g_rssi >= -75) {
+            filled = 2;
+        } else {
+            filled = 1;
+        }
     }
 
     for (int i = 0; i < 4; i++) {
@@ -321,7 +382,21 @@ static void draw_sig_bars(int x, int y) {
     }
 }
 
-// stat_str: optional small string in the footer (e.g. packet count)
+// 10-segment volume bar, 4 wide × 8 tall per segment, 1 px gap.
+static void draw_vol_bar(int x, int y) {
+    int filled = (g_volume + 5) / 10;
+    if (filled > 10) filled = 10;
+    if (filled < 0) filled = 0;
+    for (int i = 0; i < 10; i++) {
+        int bx = x + i * 5;
+        if (i < filled) {
+            Yboard.display.fillRect(bx, y, 4, 8, WHITE);
+        } else {
+            Yboard.display.drawRect(bx, y, 4, 8, WHITE);
+        }
+    }
+}
+
 static void draw_screen(const char *status, const char *footer = nullptr) {
     Yboard.display.clearDisplay();
     Yboard.display.setTextColor(WHITE);
@@ -333,49 +408,57 @@ static void draw_screen(const char *status, const char *footer = nullptr) {
     Yboard.display.setTextSize(1);
     Yboard.display.setCursor(3, 2);
     Yboard.display.print("WALKIE-TALKIE");
-    draw_antenna(114, 1);
+    draw_antenna(118, 1);
     Yboard.display.drawFastHLine(1, 11, 126, WHITE);
 
     // ── Channel + signal row (y 13-20) ────────────────────────────
     char ch_str[10];
-    snprintf(ch_str, sizeof(ch_str), "CH: %02d", g_channel);
-    Yboard.display.setTextSize(1);
-    Yboard.display.setCursor(4, 13);
+    snprintf(ch_str, sizeof(ch_str), "CH:%02d", g_channel);
+    Yboard.display.setCursor(3, 13);
     Yboard.display.print(ch_str);
 
-    Yboard.display.setCursor(60, 13);
-    Yboard.display.print("SIG:");
-    draw_sig_bars(84, 13);
+    draw_sig_bars(40, 13);
 
-    if (g_rssi != 0) {
-        char dbm[8];
-        snprintf(dbm, sizeof(dbm), "%ddB", (int)g_rssi);
-        Yboard.display.setCursor(107, 13);
+    if (g_rssi_init) {
+        char dbm[10];
+        snprintf(dbm, sizeof(dbm), "%ddBm", (int)g_rssi);
+        // right-align so a "-99dBm" still fits cleanly
+        int w = (int)strlen(dbm) * 6;
+        Yboard.display.setCursor(124 - w, 13);
         Yboard.display.print(dbm);
+    } else {
+        Yboard.display.setCursor(94, 13);
+        Yboard.display.print("---");
     }
 
-    // Double separator (retro feel)
     Yboard.display.drawFastHLine(1, 22, 126, WHITE);
-    Yboard.display.drawFastHLine(1, 24, 126, WHITE);
 
-    // ── Large status word (y 28-43) ───────────────────────────────
+    // ── Volume + jitter row (y 24-31) ─────────────────────────────
+    draw_vol_bar(2, 24); // 10 × 5 = 50 px, ends x=52
+    char jit_str[10];
+    snprintf(jit_str, sizeof(jit_str), "JIT:%02d", g_jitter_pkts);
+    Yboard.display.setCursor(89, 24);
+    Yboard.display.print(jit_str);
+
+    Yboard.display.drawFastHLine(1, 33, 126, WHITE);
+
+    // ── Status word (y 36-51, size 2) ─────────────────────────────
     Yboard.display.setTextSize(2);
-    int sw = (int)strlen(status) * 12;
-    int sx = (128 - sw) / 2;
+    int sw_px = (int)strlen(status) * 12;
+    int sx = (128 - sw_px) / 2;
     if (sx < 1) {
         sx = 1;
     }
-    Yboard.display.setCursor(sx, 28);
+    Yboard.display.setCursor(sx, 36);
     Yboard.display.print(status);
 
-    // Separator above footer
-    Yboard.display.drawFastHLine(1, 46, 126, WHITE);
+    Yboard.display.drawFastHLine(1, 53, 126, WHITE);
 
-    // ── Footer (y 49-62) ──────────────────────────────────────────
+    // ── Footer (y 55-62) ──────────────────────────────────────────
     const char *h = footer ? footer : "^v=CH  [CTR]=TALK";
     Yboard.display.setTextSize(1);
     int hw = (int)strlen(h) * 6;
-    Yboard.display.setCursor((128 - hw) / 2, 53);
+    Yboard.display.setCursor((128 - hw) / 2, 55);
     Yboard.display.print(h);
 
     Yboard.display.display();
@@ -448,6 +531,12 @@ void setup() {
 
     Yboard.set_led_brightness(80);
     Yboard.set_recording_volume(8);
+
+    // Knob represents speaker volume 0-100
+    Yboard.set_knob(g_volume);
+    // Read initial switch position for jitter buffer (1-16 packets)
+    g_jitter_pkts = (int)(Yboard.get_switches() & 0x0F) + 1;
+
     draw_screen("IDLE");
 }
 
@@ -459,6 +548,24 @@ void loop() {
     bool btn = Yboard.get_button(YBoardV4::button_center);
     bool btn_up = Yboard.get_button(YBoardV4::button_up);
     bool btn_dn = Yboard.get_button(YBoardV4::button_down);
+
+    // ── Knob → volume (clamp 0-100) ──────────────────────────────────────────
+    int64_t k = Yboard.get_knob();
+    if (k < 0) {
+        Yboard.set_knob(0);
+        k = 0;
+    } else if (k > 100) {
+        Yboard.set_knob(100);
+        k = 100;
+    }
+    int new_vol = (int)k;
+
+    // ── Switches → jitter prefill (1-16 packets) ─────────────────────────────
+    int new_jit = (int)(Yboard.get_switches() & 0x0F) + 1;
+
+    bool ctrl_changed = (new_vol != g_volume) || (new_jit != g_jitter_pkts);
+    g_volume = new_vol;
+    g_jitter_pkts = new_jit;
 
     // ── RX-ended flag (set by speaker task on silence timeout) ────────────────
     if (g_rx_ended) {
@@ -489,9 +596,9 @@ void loop() {
         prev_up = btn_up;
         prev_dn = btn_dn;
 
-        // Refresh RSSI indicator every 500 ms
+        // Refresh RSSI indicator every 500 ms, or immediately on control change
         static uint32_t last_draw = 0;
-        if (millis() - last_draw > 500) {
+        if (ctrl_changed || millis() - last_draw > 500) {
             last_draw = millis();
             draw_screen("IDLE");
         }
