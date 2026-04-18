@@ -168,7 +168,10 @@ static void audio_init() {
     mic_cfg.sample_rate = SAMPLE_RATE;
     mic_cfg.channels = 1;
     mic_cfg.bits_per_sample = BITS;
-    // Preserve PDM signal type and I2S format (set by yboard's setup_mic)
+    // PDM signal type required for the on-board mic — defaultConfig() drops it
+    mic_cfg.signal_type = PDM;
+    mic_cfg.i2s_format = I2S_STD_FORMAT;
+    mic_cfg.is_master = true;
     mic_cfg.pin_ws = MIC_PIN_WS;
     mic_cfg.pin_data = MIC_PIN_DATA;
     mic_cfg.port_no = MIC_I2S_PORT;
@@ -237,6 +240,20 @@ static void transmit_packet(bool last) {
     if (got < PKT_AUDIO) {
         // Partial read: zero-pad to keep timing correct
         memset(audio + got, 0, PKT_AUDIO - got);
+    }
+
+    // Raw PDM samples are quiet; apply software gain (VolumeStream is bypassed
+    // because we read I2S directly). Saturate on overflow.
+    constexpr int MIC_GAIN = 8;
+    int16_t *samples = reinterpret_cast<int16_t *>(audio);
+    int n_samples = PKT_AUDIO / 2;
+    for (int i = 0; i < n_samples; i++) {
+        int32_t s = (int32_t)samples[i] * MIC_GAIN;
+        if (s > 32767)
+            s = 32767;
+        else if (s < -32768)
+            s = -32768;
+        samples[i] = (int16_t)s;
     }
 
     esp_now_send(BCAST, pkt, PKT_TOTAL);
