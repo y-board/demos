@@ -77,6 +77,7 @@ static int g_channel = 1;
 // ── User controls ─────────────────────────────────────────────────────────────
 static volatile int g_volume = 50;     // 0-100, set by knob, applied on RX
 static volatile int g_jitter_pkts = 6; // 1-16, from DIP-style switches
+static volatile bool g_muted = false;  // knob-button toggle; preserves volume
 
 // ── TX bookkeeping ────────────────────────────────────────────────────────────
 static uint8_t g_tx_session = 0;
@@ -256,7 +257,8 @@ static void speaker_task(void *) {
 
     auto write_with_volume = [&](size_t n) {
         // Apply software volume (we bypass yboard's VolumeStream).
-        int vol = g_volume;
+        // Mute zeros the buffer so DMA stays fed without a click.
+        int vol = g_muted ? 0 : g_volume;
         int16_t *s = reinterpret_cast<int16_t *>(buf);
         int ns = (int)(n / 2);
         for (int i = 0; i < ns; i++) {
@@ -389,7 +391,15 @@ static void draw_sig_bars(int x, int y) {
 }
 
 // 10-segment volume bar, 4 wide × 8 tall per segment, 1 px gap.
+// When muted, the bar is replaced by an outlined frame containing "MUTE".
 static void draw_vol_bar(int x, int y) {
+    if (g_muted) {
+        Yboard.display.drawRect(x, y, 49, 8, WHITE); // span matches 10×5 - 1
+        Yboard.display.setTextSize(1);
+        Yboard.display.setCursor(x + 12, y);
+        Yboard.display.print("MUTE");
+        return;
+    }
     int filled = (g_volume + 5) / 10;
     if (filled > 10) {
         filled = 10;
@@ -571,7 +581,18 @@ void loop() {
     // ── Switches → jitter prefill (1-16 packets) ─────────────────────────────
     int new_jit = (int)(Yboard.get_switches() & 0x0F) + 1;
 
-    bool ctrl_changed = (new_vol != g_volume) || (new_jit != g_jitter_pkts);
+    // ── Knob button → mute toggle (edge-triggered) ───────────────────────────
+    static bool prev_knob_btn = false;
+    bool knob_btn = Yboard.get_knob_button();
+    bool mute_toggled = false;
+    if (knob_btn && !prev_knob_btn) {
+        g_muted = !g_muted;
+        mute_toggled = true;
+    }
+    prev_knob_btn = knob_btn;
+
+    bool ctrl_changed =
+        mute_toggled || (new_vol != g_volume) || (new_jit != g_jitter_pkts);
     g_volume = new_vol;
     g_jitter_pkts = new_jit;
 
