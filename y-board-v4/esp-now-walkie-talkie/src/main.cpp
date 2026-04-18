@@ -203,13 +203,37 @@ static void speaker_task(void *) {
 
     uint8_t buf[PKT_AUDIO];
     constexpr TickType_t SILENCE_TIMEOUT = pdMS_TO_TICKS(300);
+    // Jitter buffer: pre-fill N packets before starting playback so brief
+    // network gaps don't starve the I2S DMA (which would click/pop).
+    // 6 pkts = ~45 ms of headroom.
+    constexpr size_t JITTER_PREFILL = PKT_AUDIO * 6;
+    bool playing = false;
 
     while (true) {
+        if (!playing) {
+            if (xStreamBufferBytesAvailable(g_audio_sbuf) >= JITTER_PREFILL) {
+                playing = true;
+            } else {
+                // Wait for more data, but bail out if transmission ended
+                size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf),
+                                                  SILENCE_TIMEOUT);
+                if (got == 0) {
+                    if (g_state == ST_RX) {
+                        g_rx_ended = true;
+                    }
+                    continue;
+                }
+                spk.write(buf, got);
+                continue;
+            }
+        }
+
         size_t got = xStreamBufferReceive(g_audio_sbuf, buf, sizeof(buf), SILENCE_TIMEOUT);
         if (got > 0) {
             spk.write(buf, got);
         } else {
             // 300 ms of silence: the transmission has ended
+            playing = false;
             if (g_state == ST_RX) {
                 g_rx_ended = true; // main loop will clean up display/LEDs
             }
@@ -244,7 +268,7 @@ static void transmit_packet(bool last) {
 
     // Raw PDM samples are quiet; apply software gain (VolumeStream is bypassed
     // because we read I2S directly). Saturate on overflow.
-    constexpr int MIC_GAIN = 8;
+    constexpr int MIC_GAIN = 24;
     int16_t *samples = reinterpret_cast<int16_t *>(audio);
     int n_samples = PKT_AUDIO / 2;
     for (int i = 0; i < n_samples; i++) {
