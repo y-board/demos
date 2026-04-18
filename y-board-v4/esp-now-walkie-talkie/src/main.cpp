@@ -91,7 +91,7 @@ static volatile bool g_rx_ended = false;
 // ESP-NOW callbacks
 // ─────────────────────────────────────────────────────────────────────────────
 
-static void espnow_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+static void espnow_recv(const uint8_t *mac_addr, const uint8_t *data, int len) {
     if (len < PKT_HDR) {
         return;
     }
@@ -102,7 +102,7 @@ static void espnow_recv(const esp_now_recv_info_t *info, const uint8_t *data, in
         return; // ignore our own echoes while transmitting
     }
 
-    g_rssi = (int8_t)info->rx_ctrl->rssi;
+    (void)mac_addr;
 
     int audio_len = len - PKT_HDR;
     if (audio_len > 0) {
@@ -233,7 +233,7 @@ static void transmit_packet(bool last) {
 
     // readBytes blocks until PKT_AUDIO bytes are available from I2S DMA.
     // At 16 kHz 16-bit, this naturally paces transmission to ~7.5 ms/packet.
-    size_t got = mic.readBytes((char *)audio, PKT_AUDIO);
+    size_t got = mic.readBytes(audio, PKT_AUDIO);
     if (got < PKT_AUDIO) {
         // Partial read: zero-pad to keep timing correct
         memset(audio + got, 0, PKT_AUDIO - got);
