@@ -1,0 +1,14 @@
+display_name: Light Dial Game
+icon: "🎛️"
+description: Spin the knob to find a hidden color. Get faster each round.
+assets:
+  - sounds/sm64_key_get.wav
+  - sounds/sm64_red_coin_1.wav
+  - sounds/sm64_red_coin_2.wav
+  - sounds/sm64_red_coin_3.wav
+  - sounds/sm64_red_coin_4.wav
+  - sounds/sm64_red_coin_5.wav
+  - sounds/sm64_red_coin_6.wav
+  - sounds/sm64_red_coin_7.wav
+  - sounds/sm64_red_coin_8.wav
+  - sounds/sm64_thwomp.wav

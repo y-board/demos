@@ -1,0 +1,3 @@
+display_name: WiFi Sniffer
+icon: "📶"
+description: Scans WiFi channels in promiscuous mode. LEDs and OLED show packet activity.

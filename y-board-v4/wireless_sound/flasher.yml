@@ -1,0 +1,15 @@
+display_name: Wireless Sound
+icon: "🔊"
+description: One board sends a sound name over ESP-NOW; another plays the matching SD card file.
+assets:
+  - sounds/bark.mp3
+  - sounds/beep.mp3
+  - sounds/boing.mp3
+  - sounds/coin.mp3
+  - sounds/explosion.wav
+  - sounds/gameover.wav
+  - sounds/laser.wav
+  - sounds/powerup.wav
+  - sounds/siren.wav
+  - sounds/surprise.wav
+  - sounds/tada.mp3

@@ -1,0 +1,5 @@
+display_name: Go Cougs
+icon: "🐾"
+description: Plays the BYU fight song with synced lyrics on the display.
+assets:
+  - sounds/fight_song.mp3

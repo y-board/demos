@@ -1,0 +1,3 @@
+display_name: Walkie Talkie
+icon: "📻"
+description: Push-to-talk voice chat between two boards over ESP-NOW. No WiFi needed.

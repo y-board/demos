@@ -1,0 +1,66 @@
+name: Deploy Flasher
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO and PyYAML
+        run: pip install --upgrade platformio pyyaml
+
+      - name: Build all v4 demos with flasher.yml
+        working-directory: y-board-v4
+        run: |
+          set -e
+          for f in */flasher.yml; do
+            demo=$(dirname "$f")
+            echo "::group::Building $demo"
+            python build.py "$demo"
+            echo "::endgroup::"
+          done
+
+      - name: Checkout demo-flasher repo
+        uses: actions/checkout@v4
+        with:
+          repository: y-board/demo-flasher
+          token: ${{ secrets.FLASHER_DEPLOY_TOKEN }}
+          path: demo-flasher
+
+      - name: Generate flasher contents
+        run: |
+          python scripts/deploy_flasher.py \
+            --demos-root y-board-v4 \
+            --build-dir y-board-v4/build \
+            --flasher-root demo-flasher \
+            --version "$(git rev-parse --short HEAD)" \
+            --template-dir flasher-template
+
+      - name: Commit and push to demo-flasher
+        working-directory: demo-flasher
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to publish"
+            exit 0
+          fi
+          sha=$(cd .. && git rev-parse --short HEAD)
+          git commit -m "Deploy demos from y-board-demos@${sha}"
+          git push

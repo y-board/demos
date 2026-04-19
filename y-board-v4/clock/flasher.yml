@@ -1,0 +1,7 @@
+display_name: Clock
+icon: "🕐"
+description: NTP-synced clock with alarms. Configure WiFi over USB using Improv.
+assets:
+  - sounds/beep.wav
+  - sounds/tick.wav
+  - sounds/tick-quiet.wav

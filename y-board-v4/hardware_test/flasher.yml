@@ -1,0 +1,5 @@
+display_name: Hardware Test
+icon: "🔧"
+description: Visual smoke test for buttons, switches, knob, LEDs, and speaker.
+assets:
+  - sounds/sm64_key_get.wav

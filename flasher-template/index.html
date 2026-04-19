@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Y-Board Demo Installer</title>
+    <meta name="description" content="Install Y-Board firmware demos directly from your browser over USB." />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-alt: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+            --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --accent: #38bdf8;
+                --accent-hover: #7dd3fc;
+                --bg: #0f172a;
+                --surface: #1e293b;
+                --surface-alt: #334155;
+                --border: #334155;
+                --text: #f1f5f9;
+                --text-muted: #94a3b8;
+                --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+                --shadow-card: 0 1px 3px rgba(0,0,0,.2), 0 2px 8px rgba(0,0,0,.15);
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 32px 16px 48px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: var(--accent);
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .logo svg {
+            width: 30px;
+            height: 30px;
+            fill: #fff;
+        }
+
+        header h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin: 0 0 8px;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        section h2 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin: 0 0 16px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .demo-card {
+            position: relative;
+        }
+
+        .demo-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .demo-card label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            background: var(--surface-alt);
+            transition: border-color .15s, background .15s, box-shadow .15s;
+            text-align: center;
+            user-select: none;
+        }
+
+        .demo-card label:hover {
+            border-color: var(--accent);
+            background: var(--surface);
+            box-shadow: var(--shadow-card);
+        }
+
+        .demo-card input[type="radio"]:checked + label {
+            border-color: var(--accent);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+
+        .demo-icon {
+            font-size: 1.75rem;
+            line-height: 1;
+        }
+
+        .demo-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .demo-description {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            text-align: center;
+            margin: 0 0 16px;
+        }
+
+        .install-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .install-hint {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        esp-web-install-button {
+            --esp-tools-button-color: var(--accent);
+            --esp-tools-button-text-color: #fff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .asset-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: border-color .15s, background .15s;
+        }
+
+        .asset-button:hover {
+            border-color: var(--accent);
+            background: var(--surface);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            margin-top: 32px;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        footer .dot {
+            margin: 0 6px;
+            opacity: .4;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 24px;
+        }
+    </style>
+    <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</head>
+
+<body>
+    <div class="page">
+
+        <header>
+            <div class="logo">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 2v2H7a2 2 0 0 0-2 2v2H3v2h2v2H3v2h2v2a2 2 0 0 0 2 2h2v2h2v-2h2v2h2v-2h2a2 2 0 0 0 2-2v-2h2v-2h-2v-2h2v-2h-2V6a2 2 0 0 0-2-2h-2V2h-2v2h-2V2H9zm-2 4h10v10H7V6zm2 2v6h6V8H9z"/>
+                </svg>
+            </div>
+            <h1>Y-Board Demo Installer</h1>
+            <p>Flash firmware demos to your Y-Board directly from your browser.</p>
+        </header>
+
+        <section>
+            <h2>Choose a Demo</h2>
+            <div class="demo-grid" id="demo-grid">
+                <p class="loading">Loading demos…</p>
+            </div>
+        </section>
+
+        <section id="details-section" class="hidden">
+            <h2>About</h2>
+            <p class="demo-description" id="demo-description"></p>
+            <div class="install-area">
+                <p class="install-hint" id="install-hint">Connect your Y-Board via USB, then click Install.</p>
+                <esp-web-install-button id="install-btn"></esp-web-install-button>
+                <a id="asset-link" class="asset-button hidden" download>
+                    <span>📦</span> Download SD card files
+                </a>
+                <p class="install-hint hidden" id="asset-hint">Unzip onto the Y-Board's SD card before flashing.</p>
+            </div>
+        </section>
+
+        <footer>
+            <a href="https://y-board.github.io">Y-Board</a>
+            <span class="dot">&bull;</span>
+            Powered by <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>
+        </footer>
+
+    </div>
+
+    <script>
+        const grid = document.getElementById('demo-grid');
+        const detailsSection = document.getElementById('details-section');
+        const description = document.getElementById('demo-description');
+        const installBtn = document.getElementById('install-btn');
+        const assetLink = document.getElementById('asset-link');
+        const assetHint = document.getElementById('asset-hint');
+
+        async function init() {
+            let catalog;
+            try {
+                const res = await fetch('./manifests/index.json', { cache: 'no-cache' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                catalog = await res.json();
+            } catch (err) {
+                grid.innerHTML = `<p class="loading">Failed to load demos: ${err.message}</p>`;
+                return;
+            }
+
+            grid.innerHTML = '';
+            for (const demo of catalog.demos) {
+                const card = document.createElement('div');
+                card.className = 'demo-card';
+                const radioId = `demo-${demo.id}`;
+                card.innerHTML = `
+                    <input type="radio" name="demo" id="${radioId}" value="${demo.id}" />
+                    <label for="${radioId}">
+                        <span class="demo-icon">${demo.icon}</span>
+                        <span class="demo-name">${demo.display_name}</span>
+                    </label>
+                `;
+                const radio = card.querySelector('input');
+                radio.addEventListener('change', () => selectDemo(demo));
+                grid.appendChild(card);
+            }
+        }
+
+        function selectDemo(demo) {
+            description.textContent = demo.description || '';
+            installBtn.manifest = `./${demo.manifest}`;
+            if (demo.assets) {
+                assetLink.href = `./${demo.assets}`;
+                assetLink.classList.remove('hidden');
+                assetHint.classList.remove('hidden');
+            } else {
+                assetLink.classList.add('hidden');
+                assetHint.classList.add('hidden');
+            }
+            detailsSection.classList.remove('hidden');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
