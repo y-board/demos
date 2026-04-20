@@ -63,20 +63,15 @@
         }
 
         .logo {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 56px;
-            height: 56px;
-            background: var(--accent);
-            border-radius: 16px;
+            display: inline-block;
+            width: 72px;
+            height: 72px;
             margin-bottom: 16px;
         }
 
-        .logo svg {
-            width: 30px;
-            height: 30px;
-            fill: #fff;
+        .logo img {
+            width: 100%;
+            height: 100%;
         }
 
         header h1 {
@@ -241,6 +236,32 @@
             padding: 24px;
         }
     </style>
+    <script>
+        // Filter the WebSerial picker to only show Y-Board devices and silently
+        // reuse a previously-granted port when there's exactly one Y-Board
+        // connected. esp-web-tools calls navigator.serial.requestPort() with no
+        // filters, so we wrap it here. Loaded before esp-web-tools so the
+        // patched version is in place by the time the user clicks Install.
+        if (navigator.serial) {
+            const SERIAL_FILTERS = [
+                { usbVendorId: 0x303A, usbProductId: 0x1001 }, // ESP32-S3 native USB-CDC
+            ];
+            const matchesFilter = (info) =>
+                SERIAL_FILTERS.some(
+                    (f) => f.usbVendorId === info.usbVendorId && f.usbProductId === info.usbProductId
+                );
+            const original = navigator.serial.requestPort.bind(navigator.serial);
+            navigator.serial.requestPort = async function (opts) {
+                const granted = await navigator.serial.getPorts();
+                const matching = granted.filter((p) => matchesFilter(p.getInfo()));
+                if (matching.length === 1) {
+                    return matching[0];
+                }
+                const options = opts && opts.filters ? opts : { filters: SERIAL_FILTERS };
+                return original(options);
+            };
+        }
+    </script>
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 </head>
 
@@ -249,9 +270,7 @@
 
         <header>
             <div class="logo">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 2v2H7a2 2 0 0 0-2 2v2H3v2h2v2H3v2h2v2a2 2 0 0 0 2 2h2v2h2v-2h2v2h2v-2h2a2 2 0 0 0 2-2v-2h2v-2h-2v-2h2v-2h-2V6a2 2 0 0 0-2-2h-2V2h-2v2h-2V2H9zm-2 4h10v10H7V6zm2 2v6h6V8H9z"/>
-                </svg>
+                <img src="./logo.svg" alt="Y-Board" />
             </div>
             <h1>Y-Board Demo Installer</h1>
             <p>Flash firmware demos to your Y-Board directly from your browser.</p>
