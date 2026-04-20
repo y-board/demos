@@ -1,12 +1,28 @@
-name: Deploy Flasher
+name: Build and Deploy v4
+
 on:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - audio_recorder
+          - clock
+          - color_game
+          - go_cougs
+          - hardware_test
+          - ir
+          - light_dial_game
+          - light_show
+          - walkie-talkie
+          - wifi_sniffer
+          - wireless_sound
     steps:
       - uses: actions/checkout@v4
 
@@ -19,21 +35,42 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install PlatformIO and PyYAML
-        run: pip install --upgrade platformio pyyaml
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
 
-      - name: Build all v4 demos with flasher.yml
+      - name: Build merged binary
         working-directory: y-board-v4
-        run: |
-          set -e
-          for f in */flasher.yml; do
-            demo=$(dirname "$f")
-            echo "::group::Building $demo"
-            python build.py "$demo"
-            echo "::endgroup::"
-          done
+        run: python build.py ${{ matrix.project }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.project }}
+          path: y-board-v4/build/${{ matrix.project }}.bin
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyYAML
+        run: pip install --upgrade pyyaml
+
+      - name: Download built binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bin-*
+          merge-multiple: true
+          path: y-board-v4/build
 
       - name: Checkout demo-flasher repo
         uses: actions/checkout@v4
