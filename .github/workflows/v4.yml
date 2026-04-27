@@ -21,6 +21,7 @@ jobs:
           - light_dial_game
           - light_show
           - walkie-talkie
+          - water_sim
           - wifi_sniffer
           - wireless_sound
     steps:
