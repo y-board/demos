@@ -1,28 +1,34 @@
-
 #include "Arduino.h"
 #include "yboard.h"
 #include <math.h>
 
 //////////////////////////////// Configuration Constants ///////////////////////
 
-// How quickly gravity pulls the water toward the low side
-const float SPRING = 0.003f;
-// Fraction of velocity retained each frame (higher = more sloshy)
-const float DAMPING = 0.97f;
-// Fraction of the LED ring that is underwater when at rest
+// How quickly gravity pulls the water toward the low side.
+// Increase for snappier response; decrease for slower, heavier water.
+const float SPRING = 0.012f;
+// Fraction of velocity retained each frame (higher = more sloshy overshoot).
+const float DAMPING = 0.96f;
+// Maximum angular velocity of the water (radians/frame).  Prevents runaway
+// spinning when the board is held at a steep angle for a long time.
+const float MAX_VELOCITY = 0.15f;
+// Fraction of the LED ring that is underwater when at rest (~16 of 35 LEDs).
 const float WATER_FILL = 0.45f;
-// Base splash zone height above the waterline (in normalized depth units)
+// Base splash zone height above the waterline (in normalized depth units).
 const float SPLASH_SPREAD = 0.12f;
-// Multiplier for how much speed increases the splash zone
+// Multiplier for how much speed increases the splash zone.
 const float SPLASH_VEL_SCALE = 8.0f;
-// Frame delay in milliseconds (~60fps)
+// Frame delay in milliseconds (~60 fps).
 const int FRAME_MS = 16;
+
+// Rotates the LED ring mapping to correct for board orientation.
+// If the water pools on the wrong side when the board is tilted, try
+// adjusting this in 90-degree steps: 0, 90, 180, or 270.
+const float LED_RING_OFFSET_DEG = 0.0f;
 
 //////////////////////////////// Globals ///////////////////////////////////////
 
-// Direction toward which the water has shifted (radians, board X-Y plane)
 float water_angle = 0.0f;
-// Angular velocity of the water mass (radians/frame)
 float water_velocity = 0.0f;
 
 //////////////////////////////// Forward Declarations //////////////////////////
@@ -65,7 +71,6 @@ void loop() {
 
 //////////////////////////////// Helper Functions //////////////////////////////
 
-// Normalize an angle to the range [-PI, PI].
 static float wrap_angle(float angle) {
   while (angle > PI)
     angle -= 2.0f * PI;
@@ -77,48 +82,37 @@ static float wrap_angle(float angle) {
 // Apply one frame of spring-damper physics using the board's in-plane
 // acceleration. gx and gy are the X and Y accelerometer readings in mg.
 static void update_physics(float gx, float gy) {
-  // In-plane gravity magnitude, normalized to [0, 1] (1000 mg = 1 g)
-  float gravity_mag = sqrtf(gx * gx + gy * gy) / 1000.0f;
-  gravity_mag = fminf(gravity_mag, 1.0f);
-
-  // Direction the water should flow toward (the low side of the board)
+  float gravity_mag = fminf(sqrtf(gx * gx + gy * gy) / 1000.0f, 1.0f);
   float gravity_dir = atan2f(gy, gx);
 
-  // Pull the water angle toward the gravity direction
   float diff = wrap_angle(gravity_dir - water_angle);
   water_velocity += diff * SPRING * gravity_mag;
   water_velocity *= DAMPING;
+  if (water_velocity > MAX_VELOCITY)
+    water_velocity = MAX_VELOCITY;
+  if (water_velocity < -MAX_VELOCITY)
+    water_velocity = -MAX_VELOCITY;
   water_angle = wrap_angle(water_angle + water_velocity);
 }
 
 // Set LED colors to render the water surface at the current water_angle.
-// speed is the absolute angular velocity used to scale the splash effect.
 static void render_leds(float speed) {
-  // cos(angle) must exceed this threshold for an LED to be underwater.
-  // WATER_FILL=0.45 gives ~46% of the ring submerged (~16 of 35 LEDs).
   float water_threshold = 1.0f - 2.0f * WATER_FILL;
-
-  // Splash zone expands above the waterline as the water moves faster.
   float splash_zone = SPLASH_SPREAD + speed * SPLASH_VEL_SCALE;
+  float ring_offset = LED_RING_OFFSET_DEG * PI / 180.0f;
 
   for (int i = 0; i < Yboard.num_leds; i++) {
-    float led_angle = (2.0f * PI * i) / Yboard.num_leds;
-
-    // 1.0 at the deepest point (water center), -1.0 at the opposite peak.
+    float led_angle = (2.0f * PI * i) / Yboard.num_leds + ring_offset;
     float cos_depth = cosf(led_angle - water_angle);
-
-    // Normalized depth: 1 = deepest, 0 = at waterline, negative = above water.
     float depth = (cos_depth - water_threshold) / (1.0f - water_threshold);
 
     uint8_t r = 0, g = 0, b = 0;
 
     if (depth >= 0.0f) {
-      // Underwater: dark blue at the bottom, bright blue-cyan at the surface.
       float surface_prox = 1.0f - depth;
       g = (uint8_t)(surface_prox * 80.0f);
       b = (uint8_t)(30.0f + surface_prox * 200.0f);
     } else if (-depth < splash_zone) {
-      // Splash zone: fades out above the waterline, brighter when moving fast.
       float t = 1.0f - (-depth / splash_zone);
       float intensity = t * t * fminf(1.0f, 0.4f + speed * 5.0f);
       g = (uint8_t)(intensity * 120.0f);
